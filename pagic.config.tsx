@@ -10,21 +10,12 @@ export default {
   head: <link rel="icon" type="image/png" href="/favicon.png" />,
   nav: [
     {
-      text: '赞助作者',
-      link: 'https://github.com/xcatliu/buy-me-a-coffee',
-      target: '_blank',
-      popover: (
-        <>
-          <img src="/assets/wechat.jpg" width="256" style={{ marginRight: '1rem', verticalAlign: 'top' }} />
-          <img src="/assets/alipay.jpg" width="256" style={{ verticalAlign: 'top' }} />
-        </>
-      ),
+      text: '艾诺迪亚4',
+      link: 'inotia4/introduction.html',
     },
     {
-      text: '加入微信群',
-      popover: (
-        <p style={{ marginTop: 0, width: 256 }}>微信群已超过 200 人，如要加群，请加群主微信 xcatliu 并备注 ts</p>
-      ),
+      text: '艾诺迪亚3',
+      link: 'inotia3/introduction.html',
     },
     {
       text: '加入 QQ 群',
@@ -46,49 +37,93 @@ export default {
     },
   ],
   sidebar: {
-    '/': [
+    '/inotia4': [
       {
-        link: 'introduction/README.md',
+        link: 'inotia4/introduction/README.md',
         children: [
-          'introduction/what-is-typescript.md',
-          'introduction/get-typescript.md',
-          'introduction/hello-typescript.md',
+          'inotia4/introduction/what-is-typescript.md',
+          'inotia4/introduction/get-typescript.md',
+          'inotia4/introduction/hello-typescript.md',
         ],
       },
       {
-        link: 'basics/README.md',
+        link: 'inotia4/basics/README.md',
         children: [
-          'basics/primitive-data-types.md',
-          'basics/any.md',
-          'basics/type-inference.md',
-          'basics/union-types.md',
-          'basics/type-of-object-interfaces.md',
-          'basics/type-of-array.md',
-          'basics/type-of-function.md',
-          'basics/type-assertion.md',
-          'basics/declaration-files.md',
-          'basics/built-in-objects.md',
+          'inotia4/basics/primitive-data-types.md',
+          'inotia4/basics/any.md',
+          'inotia4/basics/type-inference.md',
+          'inotia4/basics/union-types.md',
+          'inotia4/basics/type-of-object-interfaces.md',
+          'inotia4/basics/type-of-array.md',
+          'inotia4/basics/type-of-function.md',
+          'inotia4/basics/type-assertion.md',
+          'inotia4/basics/declaration-files.md',
+          'inotia4/basics/built-in-objects.md',
         ],
       },
       {
-        link: 'advanced/README.md',
+        link: 'inotia4/advanced/README.md',
         children: [
-          'advanced/type-aliases.md',
-          'advanced/string-literal-types.md',
-          'advanced/tuple.md',
-          'advanced/enum.md',
-          'advanced/class.md',
-          'advanced/class-and-interfaces.md',
-          'advanced/generics.md',
-          'advanced/declaration-merging.md',
-          'advanced/further-reading.md',
+          'inotia4/advanced/type-aliases.md',
+          'inotia4/advanced/string-literal-types.md',
+          'inotia4/advanced/tuple.md',
+          'inotia4/advanced/enum.md',
+          'inotia4/advanced/class.md',
+          'inotia4/advanced/class-and-interfaces.md',
+          'inotia4/advanced/generics.md',
+          'inotia4/advanced/declaration-merging.md',
+          'inotia4/advanced/further-reading.md',
         ],
       },
       {
-        link: 'engineering/README.md',
-        children: ['engineering/lint.md', 'engineering/compiler-options.md'],
+        link: 'inotia4/engineering/README.md',
+        children: ['inotia4/engineering/lint.md', 'inotia4/engineering/compiler-options.md'],
       },
-      'thanks/README.md',
+      'inotia4/thanks/README.md',
+    ],
+    '/inotia3': [
+      {
+        link: 'inotia3/introduction/README.md',
+        children: [
+          'inotia3/introduction/what-is-typescript.md',
+          'inotia3/introduction/get-typescript.md',
+          'inotia3/introduction/hello-typescript.md',
+        ],
+      },
+      {
+        link: 'inotia3/basics/README.md',
+        children: [
+          'inotia3/basics/primitive-data-types.md',
+          'inotia3/basics/any.md',
+          'inotia3/basics/type-inference.md',
+          'inotia3/basics/union-types.md',
+          'inotia3/basics/type-of-object-interfaces.md',
+          'inotia3/basics/type-of-array.md',
+          'inotia3/basics/type-of-function.md',
+          'inotia3/basics/type-assertion.md',
+          'inotia3/basics/declaration-files.md',
+          'inotia3/basics/built-in-objects.md',
+        ],
+      },
+      {
+        link: 'inotia3/advanced/README.md',
+        children: [
+          'inotia3/advanced/type-aliases.md',
+          'inotia3/advanced/string-literal-types.md',
+          'inotia3/advanced/tuple.md',
+          'inotia3/advanced/enum.md',
+          'inotia3/advanced/class.md',
+          'inotia3/advanced/class-and-interfaces.md',
+          'inotia3/advanced/generics.md',
+          'inotia3/advanced/declaration-merging.md',
+          'inotia3/advanced/further-reading.md',
+        ],
+      },
+      {
+        link: 'inotia3/engineering/README.md',
+        children: ['inotia3/engineering/lint.md', 'inotia3/engineering/compiler-options.md'],
+      },
+      'inotia3/thanks/README.md',
     ],
   },
   tools: {
