@@ -1,4 +1,4 @@
-import projectConfig from '/pagic.config.js';
+import projectConfig from '/docs/pagic.config.js';
 export default {
     config: { "root": "/", ...projectConfig, branch: 'gh-pages' },
     'pagePath': "links/README.md",
@@ -13,7 +13,7 @@ export default {
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
         React.createElement("script", { src: "https://cdn.pagic.org/react-dom@16.13.1/umd/react-dom.production.min.js" }),
-        React.createElement("script", { src: "/index.js", type: "module" })),
+        React.createElement("script", { src: "/docs/index.js", type: "module" })),
     'contentTitle': React.createElement("h1", { key: "0" }, "\u53CB\u60C5\u94FE\u63A5"),
     'contentBody': React.createElement("article", { dangerouslySetInnerHTML: {
             __html: '<ul>\n<li><a href="https://hungryturbo.com/"><image src="http://hungryturbo.gitee.io/webcanteen/images/avatar.jpeg" width="35" style="border-radius: 50%;margin-right: 5px"/>童欧巴</a> —— 你远道而来这世间，想必也是因为热爱吧</li>\n<li><a href="http://blog.lovemysoul.vip"><image src="http://crazy-x-lovemysoul-x-vip.img.abc188.com/images/1611286337189.jpg" width="35" style="border-radius: 50%;margin-right: 5px"/>悲伤日记</a> —— 一个有温度的野生前端猿人</li>\n<li><a href="https://www.feminzai.com/"><image src="https://www.feminzai.com/images/icons/favicon-180x180.ico" width="35" style="border-radius: 50%;margin-right: 5px"/>少年民仔</a> —— 愿你出走半生，归来仍是少年</li>\n</ul>'

@@ -1,4 +1,4 @@
-import projectConfig from '/pagic.config.js';
+import projectConfig from '/docs/pagic.config.js';
 export default {
     config: { "root": "/", ...projectConfig, branch: 'gh-pages' },
     'pagePath': "tags/多进程/",
@@ -8,7 +8,7 @@ export default {
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
         React.createElement("script", { src: "https://cdn.pagic.org/react-dom@16.13.1/umd/react-dom.production.min.js" }),
-        React.createElement("script", { src: "/index.js", type: "module" })),
+        React.createElement("script", { src: "/docs/index.js", type: "module" })),
     'title': "多进程",
     'content': null,
     'blog': {
