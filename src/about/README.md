@@ -1,12 +1,18 @@
+---
+typora-copy-images-to: ..\assets
+typora-root-url: ..
+---
+
 # 关于
 
 你好！很高兴认识你！
 
-我的网名是流浪小猫，英文是 xcatliu，基本上在任何社交网站上看到这个 id 就是我啦！
+本站所有文档均由艾诺迪亚4新手交流群成员收集与整理，如有重复，请联系我修改与指正。
 
-我毕业于武汉大学，前后就职于美团、微软、腾讯。
+本群QQ：<a href="https://qm.qq.com/cgi-bin/qm/qr?k=0NyTbiXpfPYed6TZ0T-6H14egQG5zxbQ&amp;amp;amp;jump_from=webapi">217030693</a>
 
-我非常热爱开源项目，以下是我开发或维护的一些开源项目：
 
-- [Pagic](https://github.com/xcatliu/pagic)：Deno + React 驱动的静态网站生成器，本博客也是用 Pagic 生成的哦！
-- [eslint-config-alloy](https://github.com/AlloyTeam/eslint-config-alloy)：国内最广泛使用的 ESLint 配置，也是你配置个性化 ESLint 规则的最佳参考。
+
+
+
+![](/assets/join.png)
