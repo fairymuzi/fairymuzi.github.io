@@ -39,7 +39,7 @@ export default {
         }
     ],
     blog: {
-        root: '/posts/',
+        root: '/docs/',
         social: {
             github: 'fairymuzi/doc_inotia',
             email: '2249868082@qq.com',
