@@ -5,39 +5,37 @@ export default {
   exclude: ['examples'],
   theme: 'docs',
   plugins: ['sidebar', 'prev_next'],
-  title: '艾诺迪亚文档',
-  description: '艾诺迪亚新手交流群文档',
+  title: 'TypeScript 入门教程',
+  description: '从 JavaScript 程序员的角度总结思考，循序渐进的理解 TypeScript。',
   head: <link rel="icon" type="image/png" href="/favicon.png" />,
   nav: [
     {
-      text: '艾诺迪亚4',
-      link: 'inotia4/introduction.html',
+      text: 'inotia4',
+      link: '/inotia4/introduction/index.html',
     },
     {
-      text: '艾诺迪亚3',
-      link: 'inotia3/introduction.html',
+      text: 'inotia3',
+      link: '/inotia3/introduction/index.html',
     },
     {
       text: '加入 QQ 群',
-      link: 'https://jq.qq.com/?_wv=1027&k=5nkkFCl',
+      link: 'https://qm.qq.com/cgi-bin/qm/qr?k=96p53iNUoaEHtfk9_ljkp5e7H-EDpka3&jump_from=webapi',
       target: '_blank',
       popover: (
         <>
           <p style={{ marginTop: 0, marginBottom: '1rem', width: 256 }}>
-            一群（767142358）已满，请扫码加二群（706191218）
+            QQ群号:217030693
           </p>
-          <img src="/assets/join-qq.jpg" width="256" />
+          <img src="/assets/join-qq.png" width="256" />
         </>
       ),
-    },
-    {
-      text: '本网站使用 Pagic 构建',
-      link: 'https://github.com/xcatliu/pagic',
-      target: '_blank',
+    }, {
+      text: '关于本站',
+      link: '/about/index.html',
     },
   ],
   sidebar: {
-    '/inotia4': [
+    '/inotia4/': [
       {
         link: 'inotia4/introduction/README.md',
         children: [
@@ -46,42 +44,8 @@ export default {
           'inotia4/introduction/hello-typescript.md',
         ],
       },
-      {
-        link: 'inotia4/basics/README.md',
-        children: [
-          'inotia4/basics/primitive-data-types.md',
-          'inotia4/basics/any.md',
-          'inotia4/basics/type-inference.md',
-          'inotia4/basics/union-types.md',
-          'inotia4/basics/type-of-object-interfaces.md',
-          'inotia4/basics/type-of-array.md',
-          'inotia4/basics/type-of-function.md',
-          'inotia4/basics/type-assertion.md',
-          'inotia4/basics/declaration-files.md',
-          'inotia4/basics/built-in-objects.md',
-        ],
-      },
-      {
-        link: 'inotia4/advanced/README.md',
-        children: [
-          'inotia4/advanced/type-aliases.md',
-          'inotia4/advanced/string-literal-types.md',
-          'inotia4/advanced/tuple.md',
-          'inotia4/advanced/enum.md',
-          'inotia4/advanced/class.md',
-          'inotia4/advanced/class-and-interfaces.md',
-          'inotia4/advanced/generics.md',
-          'inotia4/advanced/declaration-merging.md',
-          'inotia4/advanced/further-reading.md',
-        ],
-      },
-      {
-        link: 'inotia4/engineering/README.md',
-        children: ['inotia4/engineering/lint.md', 'inotia4/engineering/compiler-options.md'],
-      },
-      'inotia4/thanks/README.md',
     ],
-    '/inotia3': [
+    '/inotia3/': [
       {
         link: 'inotia3/introduction/README.md',
         children: [
@@ -127,26 +91,7 @@ export default {
     ],
   },
   tools: {
-    editOnGitHub: false,
     backToTop: true,
   },
-  //   tocAd: (
-  //     <div
-  //       dangerouslySetInnerHTML={{
-  //         __html: `
-  // <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-  // <!-- 192*128 -->
-  // <ins
-  //   class="adsbygoogle"
-  //   style="display:inline-block;width:192px;height:128px"
-  //   data-ad-client="ca-pub-8483371329009107"
-  //   data-ad-slot="6487368873"
-  // ></ins>
-  // <script>
-  //   (adsbygoogle = window.adsbygoogle || []).push({});
-  // </script>`
-  //       }}
-  //     />
-  //   ),
-  port: 8000,
+  port: 8001,
 };
