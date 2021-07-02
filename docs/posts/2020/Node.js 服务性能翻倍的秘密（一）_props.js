@@ -9,7 +9,6 @@ export default {
             __html: '<h1>Node.js 服务性能翻倍的秘密（一）</h1>\n<h2 id="%E5%89%8D%E8%A8%80">前言<a class="anchor" href="#%E5%89%8D%E8%A8%80">§</a></h2>\n<p>用过 Node.js 开发过的同学肯定都上手过 koa，因为他简单优雅的写法，再加上丰富的社区生态，而且现存的许多 Node.js 框架都是基于 koa 进行二次封装的。但是说到性能，就不得不提到一个知名框架： <code>fastify</code> ，听名字就知道它的特性就是快，官方给出的<a href="https://github.com/fastify/fastify#benchmarks">Benchmarks</a>甚至比 Node.js 原生的 <code>http.Server</code> 还要快。</p>\n<p><img src="https://file.shenfq.com/pic/20201213162826.png" alt="Benchmarks"></p>\n<h2 id="%E6%80%A7%E8%83%BD%E6%8F%90%E5%8D%87%E7%9A%84%E5%85%B3%E9%94%AE">性能提升的关键<a class="anchor" href="#%E6%80%A7%E8%83%BD%E6%8F%90%E5%8D%87%E7%9A%84%E5%85%B3%E9%94%AE">§</a></h2>\n<p>我们先看看 <code>fastify</code> 是如何启动一个服务的。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment"># 安装 fastify</span>\n<span class="token function">npm</span> i -S fastify@3.9.1\n</code></pre>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 创建服务实例</span>\n<span class="token keyword">const</span> fastify <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'fastify\'</span><span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n\napp<span class="token punctuation">.</span><span class="token method function property-access">get</span><span class="token punctuation">(</span><span class="token string">\'/\'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>\n  schema<span class="token operator">:</span> <span class="token punctuation">{</span>\n    response<span class="token operator">:</span> <span class="token punctuation">{</span>\n      <span class="token comment">// key 为响应状态码</span>\n      <span class="token string">\'200\'</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n        type<span class="token operator">:</span> <span class="token string">\'object\'</span><span class="token punctuation">,</span>\n        properties<span class="token operator">:</span> <span class="token punctuation">{</span>\n          hello<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'string\'</span> <span class="token punctuation">}</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token keyword">async</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token punctuation">{</span> hello<span class="token operator">:</span> <span class="token string">\'world\'</span> <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n<span class="token comment">// 启动服务</span>\n<span class="token punctuation">;</span><span class="token punctuation">(</span><span class="token keyword">async</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">try</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> port <span class="token operator">=</span> <span class="token number">3001</span> <span class="token comment">// 监听端口</span>\n    <span class="token keyword control-flow">await</span> app<span class="token punctuation">.</span><span class="token method function property-access">listen</span><span class="token punctuation">(</span>port<span class="token punctuation">)</span>\n    <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">info</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">server listening on </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>port<span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span> <span class="token keyword control-flow">catch</span> <span class="token punctuation">(</span>err<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">error</span><span class="token punctuation">(</span>err<span class="token punctuation">)</span>\n    process<span class="token punctuation">.</span><span class="token method function property-access">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n</code></pre>\n<p>从上面代码可以看出，<code>fastify</code> 对请求的响应体定义了一个 <code>schema</code>，<code>fastify</code> 除了可以定义响应体的 <code>schema</code>，还支持对如下数据定义 <code>schema</code>：</p>\n<ol>\n<li><code>body</code>：当为 POST 或 PUT 方法时，校验请求主体；</li>\n<li><code>query</code>：校验 url 的 查询参数；</li>\n<li><code>params</code>：校验 url 参数；</li>\n<li><code>response</code>：过滤并生成用于响应体的 <code>schema</code>。</li>\n</ol>\n<pre class="language-js"><code class="language-js">app<span class="token punctuation">.</span><span class="token method function property-access">post</span><span class="token punctuation">(</span><span class="token string">\'/user/:id\'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>\n  schema<span class="token operator">:</span> <span class="token punctuation">{</span>\n    params<span class="token operator">:</span> <span class="token punctuation">{</span>\n      type<span class="token operator">:</span> <span class="token string">\'object\'</span><span class="token punctuation">,</span>\n      properties<span class="token operator">:</span> <span class="token punctuation">{</span>\n        id<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'number\'</span> <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    response<span class="token operator">:</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 2xx 表示 200~299 的状态都适用此 schema</span>\n      <span class="token string">\'2xx\'</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n        type<span class="token operator">:</span> <span class="token string">\'object\'</span><span class="token punctuation">,</span>\n        properties<span class="token operator">:</span> <span class="token punctuation">{</span>\n          id<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'number\'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n          name<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'string\'</span> <span class="token punctuation">}</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token keyword">async</span> <span class="token punctuation">(</span><span class="token parameter">req</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> id <span class="token operator">=</span> req<span class="token punctuation">.</span><span class="token property-access">params</span><span class="token punctuation">.</span><span class="token property-access">id</span>\n  <span class="token keyword">const</span> userInfo <span class="token operator">=</span> <span class="token keyword control-flow">await</span> <span class="token maybe-class-name">User</span><span class="token punctuation">.</span><span class="token method function property-access">findById</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span>\n  <span class="token comment">// Content-Type 默认为 application/json</span>\n  <span class="token keyword control-flow">return</span> userInfo\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>让 <code>fastify</code> 性能提升的的秘诀在于，其返回 <code>application/json</code> 类型数据的时候，并没有使用原生的 <code>JSON.stringify</code>，而是自己内部重新实现了一套 JSON 序列化的方法，这个 <code>schema</code> 就是 JSON 序列化性能翻倍的关键。</p>\n<h2 id="%E5%A6%82%E4%BD%95%E5%AF%B9-json-%E5%BA%8F%E5%88%97%E5%8C%96">如何对 JSON 序列化<a class="anchor" href="#%E5%A6%82%E4%BD%95%E5%AF%B9-json-%E5%BA%8F%E5%88%97%E5%8C%96">§</a></h2>\n<p>在探索 <code>fastify</code> 如何对 JSON 数据序列化之前，我们先看看 <code>JSON.stringify</code> 需要经过多么繁琐的步骤，这里我们参考 Douglas Crockford （JSON 格式的创建者）开源的 <code>JSON-js</code> 中实现的 <code>stringify</code> 方法。</p>\n<blockquote>\n<p>JSON-js：<a href="https://github.com/douglascrockford/JSON-js/blob/master/json2.js">https://github.com/douglascrockford/JSON-js/blob/master/json2.js</a></p>\n</blockquote>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 只展示 JSON.stringify 核心代码，其他代码有所省略</span>\n<span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token keyword">typeof</span> <span class="token known-class-name class-name">JSON</span> <span class="token operator">!==</span> <span class="token string">"object"</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token known-class-name class-name">JSON</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n<span class="token known-class-name class-name">JSON</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">stringify</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">value</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token function">str</span><span class="token punctuation">(</span><span class="token string">""</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token string">""</span><span class="token operator">:</span> value<span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">function</span> <span class="token function">str</span><span class="token punctuation">(</span><span class="token parameter">key<span class="token punctuation">,</span> holder</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> value <span class="token operator">=</span> holder<span class="token punctuation">[</span>key<span class="token punctuation">]</span><span class="token punctuation">;</span>\n  <span class="token keyword control-flow">switch</span><span class="token punctuation">(</span><span class="token keyword">typeof</span> value<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">case</span> <span class="token string">"string"</span><span class="token operator">:</span>\n      <span class="token keyword control-flow">return</span> <span class="token function">quote</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span><span class="token punctuation">;</span>\n    <span class="token keyword">case</span> <span class="token string">"number"</span><span class="token operator">:</span>\n      <span class="token keyword control-flow">return</span> <span class="token punctuation">(</span><span class="token function">isFinite</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">?</span> <span class="token known-class-name class-name">String</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span> <span class="token operator">:</span> <span class="token string">"null"</span><span class="token punctuation">;</span>\n    <span class="token keyword">case</span> <span class="token string">"boolean"</span><span class="token operator">:</span>\n    <span class="token keyword">case</span> <span class="token string">"null"</span><span class="token operator">:</span>\n      <span class="token keyword control-flow">return</span> <span class="token known-class-name class-name">String</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span><span class="token punctuation">;</span>\n    <span class="token keyword">case</span> <span class="token string">"object"</span><span class="token operator">:</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>value<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token keyword control-flow">return</span> <span class="token string">"null"</span><span class="token punctuation">;</span>\n      <span class="token punctuation">}</span>\n      partial <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">;</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token class-name">Object</span><span class="token punctuation">.</span><span class="token property-access">prototype</span><span class="token punctuation">.</span><span class="token method function property-access">toString</span><span class="token punctuation">.</span><span class="token method function property-access">apply</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span> <span class="token operator">===</span> <span class="token string">"[object Array]"</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token comment">// 处理数组</span>\n        length <span class="token operator">=</span> value<span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span>\n        <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span>i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> length<span class="token punctuation">;</span> i <span class="token operator">+=</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          <span class="token comment">// 每个元素都需要单独处理</span>\n          partial<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">str</span><span class="token punctuation">(</span>i<span class="token punctuation">,</span> value<span class="token punctuation">)</span> <span class="token operator">||</span> <span class="token string">"null"</span><span class="token punctuation">;</span>\n        <span class="token punctuation">}</span>\n        <span class="token comment">// 将 partial 转成 ”[...]“</span>\n        v <span class="token operator">=</span> partial<span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">===</span> <span class="token number">0</span>\n          <span class="token operator">?</span> <span class="token string">"[]"</span>\n          <span class="token operator">:</span> <span class="token string">"["</span> <span class="token operator">+</span> partial<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span><span class="token string">","</span><span class="token punctuation">)</span> <span class="token operator">+</span> <span class="token string">"]"</span><span class="token punctuation">;</span>\n        <span class="token keyword control-flow">return</span> v<span class="token punctuation">;</span>\n      <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n        <span class="token comment">// 处理对象</span>\n        <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span>k <span class="token keyword">in</span> value<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token class-name">Object</span><span class="token punctuation">.</span><span class="token property-access">prototype</span><span class="token punctuation">.</span><span class="token method function property-access">hasOwnProperty</span><span class="token punctuation">.</span><span class="token method function property-access">call</span><span class="token punctuation">(</span>value<span class="token punctuation">,</span> k<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n            v <span class="token operator">=</span> <span class="token function">str</span><span class="token punctuation">(</span>k<span class="token punctuation">,</span> value<span class="token punctuation">)</span><span class="token punctuation">;</span>\n            <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>v<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n              partial<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span><span class="token function">quote</span><span class="token punctuation">(</span>k<span class="token punctuation">)</span> <span class="token operator">+</span> <span class="token string">":"</span> <span class="token operator">+</span> v<span class="token punctuation">)</span><span class="token punctuation">;</span>\n            <span class="token punctuation">}</span>\n          <span class="token punctuation">}</span>\n        <span class="token punctuation">}</span>\n        <span class="token comment">// 将 partial 转成 "{...}"</span>\n        v <span class="token operator">=</span> partial<span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">===</span> <span class="token number">0</span>\n          <span class="token operator">?</span> <span class="token string">"{}"</span>\n          <span class="token operator">:</span> <span class="token string">"{"</span> <span class="token operator">+</span> partial<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span><span class="token string">","</span><span class="token punctuation">)</span> <span class="token operator">+</span> <span class="token string">"}"</span><span class="token punctuation">;</span>\n        <span class="token keyword control-flow">return</span> v<span class="token punctuation">;</span>\n      <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>从上面的代码可以看出，进行 JSON 对象序列化时，需要遍历所有的数组与对象，逐一进行类型的判断，并对所有的 key 加上 <code>&quot;&quot;</code>，而且这里还不包括一些特殊字符的 encode 操作。但是，如果我们有了 <code>schema</code> 之后，这些情况会变得简单很多。<code>fastify</code> 官方将 JSON 的序列化单独成了一个仓库：<code>fast-json-stringify</code>，后期还引入了 <code>ajv</code> 来进行校验，这里为了更容易看懂代码，选择看比较早期的版本：0.1.0，逻辑比较简单，便于理解。</p>\n<blockquote>\n<p>fast-json-stringify@0.1.0： <a href="https://github.com/fastify/fast-json-stringify/blob/v0.1.0/index.js">https://github.com/fastify/fast-json-stringify/blob/v0.1.0/index.js</a></p>\n</blockquote>\n<pre class="language-js"><code class="language-js"><span class="token keyword">function</span> <span class="token function">$Null</span> <span class="token punctuation">(</span><span class="token parameter">i</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token string">\'null\'</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> $<span class="token known-class-name class-name">Number</span> <span class="token punctuation">(</span><span class="token parameter">i</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> num <span class="token operator">=</span> <span class="token known-class-name class-name">Number</span><span class="token punctuation">(</span>i<span class="token punctuation">)</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token function">isNaN</span><span class="token punctuation">(</span>num<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token string">\'null\'</span>\n  <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token known-class-name class-name">String</span><span class="token punctuation">(</span>num<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> $<span class="token known-class-name class-name">String</span> <span class="token punctuation">(</span><span class="token parameter">i</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token string">\'"\'</span> <span class="token operator">+</span> i <span class="token operator">+</span> <span class="token string">\'"\'</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> <span class="token function">buildObject</span> <span class="token punctuation">(</span><span class="token parameter">schema<span class="token punctuation">,</span> code<span class="token punctuation">,</span> name</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 序列化对象 ...</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> <span class="token function">buildArray</span> <span class="token punctuation">(</span><span class="token parameter">schema<span class="token punctuation">,</span> code<span class="token punctuation">,</span> name</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 序列化数组 ...</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> <span class="token function">build</span> <span class="token punctuation">(</span><span class="token parameter">schema</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> code <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n    \'use strict\'\n\n    </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>$<span class="token known-class-name class-name">String</span><span class="token punctuation">.</span><span class="token method function property-access">toString</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\n    </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>$<span class="token known-class-name class-name">Number</span><span class="token punctuation">.</span><span class="token method function property-access">toString</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\n    </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>$Null<span class="token punctuation">.</span><span class="token method function property-access">toString</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\n  </span><span class="token template-punctuation string">`</span></span>\n  <span class="token keyword">var</span> main\n\n  code <span class="token operator">=</span> <span class="token function">buildObject</span><span class="token punctuation">(</span>schema<span class="token punctuation">,</span> code<span class="token punctuation">,</span> <span class="token string">\'$main\'</span><span class="token punctuation">)</span>\n\n  code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n    ;\n    return $main\n  </span><span class="token template-punctuation string">`</span></span>\n\n  <span class="token keyword control-flow">return</span> <span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">Function</span><span class="token punctuation">(</span>code<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\nmodule<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token operator">=</span> build\n</code></pre>\n<p><code>fast-json-stringify</code> 对外暴露一个 <code>build</code> 方法，该方法接受一个 <code>schema</code>，返回一个函数（<code>$main</code>），用于将 <code>schema</code> 对应的对象进行序列化，具体使用方式如下：</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> build <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'fast-json-stringify\'</span><span class="token punctuation">)</span>\n\n<span class="token keyword">const</span> stringify <span class="token operator">=</span> <span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  type<span class="token operator">:</span> <span class="token string">\'object\'</span><span class="token punctuation">,</span>\n  properties<span class="token operator">:</span> <span class="token punctuation">{</span>\n    id<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'number\'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    name<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'string\'</span> <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span>stringify<span class="token punctuation">)</span>\n\n<span class="token keyword">const</span> objString <span class="token operator">=</span> <span class="token function">stringify</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  id<span class="token operator">:</span> <span class="token number">1</span><span class="token punctuation">,</span> name<span class="token operator">:</span> <span class="token string">\'shenfq\'</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span>objString<span class="token punctuation">)</span> <span class="token comment">// {"id":1,"name":"shenfq"}</span>\n</code></pre>\n<p>经过 <code>build</code> 构造后，返回的序列化方法如下：</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">function</span> $<span class="token known-class-name class-name">String</span> <span class="token punctuation">(</span><span class="token parameter">i</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token string">\'"\'</span> <span class="token operator">+</span> i <span class="token operator">+</span> <span class="token string">\'"\'</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">function</span> $<span class="token known-class-name class-name">Number</span> <span class="token punctuation">(</span><span class="token parameter">i</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> num <span class="token operator">=</span> <span class="token known-class-name class-name">Number</span><span class="token punctuation">(</span>i<span class="token punctuation">)</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token function">isNaN</span><span class="token punctuation">(</span>num<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token string">\'null\'</span>\n  <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token known-class-name class-name">String</span><span class="token punctuation">(</span>num<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">function</span> <span class="token function">$Null</span> <span class="token punctuation">(</span><span class="token parameter">i</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token string">\'null\'</span>\n<span class="token punctuation">}</span>\n<span class="token comment">// 序列化方法</span>\n<span class="token keyword">function</span> <span class="token function">$main</span> <span class="token punctuation">(</span><span class="token parameter">obj</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> json <span class="token operator">=</span> <span class="token string">\'{\'</span>\n\n  json <span class="token operator">+=</span> <span class="token string">\'"id":\'</span>\n\n  json <span class="token operator">+=</span> $<span class="token known-class-name class-name">Number</span><span class="token punctuation">(</span>obj<span class="token punctuation">.</span><span class="token property-access">id</span><span class="token punctuation">)</span>\n  json <span class="token operator">+=</span> <span class="token string">\',\'</span>\n  json <span class="token operator">+=</span> <span class="token string">\'"name":\'</span>\n\n  json <span class="token operator">+=</span> $<span class="token known-class-name class-name">String</span><span class="token punctuation">(</span>obj<span class="token punctuation">.</span><span class="token property-access">name</span><span class="token punctuation">)</span>\n\n  json <span class="token operator">+=</span> <span class="token string">\'}\'</span>\n  <span class="token keyword control-flow">return</span> json\n<span class="token punctuation">}</span>\n</code></pre>\n<p>可以看到，有 <code>schema</code> 做支撑，序列化的逻辑瞬间变得无比简单，最后得到的 JSON 字符串只保留需要的属性，简洁高效。我们回过头再看看 <code>buildObject</code> 是如何生成 <code>$main</code> 内的代码的：</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">function</span> <span class="token function">buildObject</span> <span class="token punctuation">(</span><span class="token parameter">schema<span class="token punctuation">,</span> code<span class="token punctuation">,</span> name</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 构造一个函数</span>\n  code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n    function </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>name<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> (obj) {\n      var json = \'{\'\n  </span><span class="token template-punctuation string">`</span></span>\n  <span class="token keyword">var</span> laterCode <span class="token operator">=</span> <span class="token string">\'\'</span>\n  <span class="token comment">// 遍历 schema 的属性</span>\n  <span class="token keyword">const</span> <span class="token punctuation">{</span> properties <span class="token punctuation">}</span> <span class="token operator">=</span> schema\n  <span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token method function property-access">keys</span><span class="token punctuation">(</span>properties<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">key<span class="token punctuation">,</span> i<span class="token punctuation">,</span> a</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n    <span class="token comment">// key 需要加上双引号</span>\n    code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n      json += \'</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>$<span class="token known-class-name class-name">String</span><span class="token punctuation">(</span>key<span class="token punctuation">)</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">:\'\n    </span><span class="token template-punctuation string">`</span></span>\n    <span class="token comment">// 通过 nested 转化 value</span>\n    <span class="token keyword">const</span> value <span class="token operator">=</span> properties<span class="token punctuation">[</span>key<span class="token punctuation">]</span>\n    <span class="token keyword">const</span> result <span class="token operator">=</span> <span class="token function">nested</span><span class="token punctuation">(</span>laterCode<span class="token punctuation">,</span> name<span class="token punctuation">,</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">.</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>key<span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span><span class="token punctuation">,</span> value<span class="token punctuation">)</span>\n\n    code <span class="token operator">+=</span> result<span class="token punctuation">.</span><span class="token property-access">code</span>\n    laterCode <span class="token operator">=</span> result<span class="token punctuation">.</span><span class="token property-access">laterCode</span>\n\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>i <span class="token operator">&lt;</span> a<span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">-</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      code <span class="token operator">+=</span> <span class="token string">\'json += \',\'\'</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n  code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n      json += \'}\'\n      return json\n    }\n  </span><span class="token template-punctuation string">`</span></span>\n\n  code <span class="token operator">+=</span> laterCode\n\n  <span class="token keyword control-flow">return</span> code\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> <span class="token function">nested</span> <span class="token punctuation">(</span><span class="token parameter">laterCode<span class="token punctuation">,</span> name<span class="token punctuation">,</span> key<span class="token punctuation">,</span> schema</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> code <span class="token operator">=</span> <span class="token string">\'\'</span>\n  <span class="token keyword">var</span> funcName\n  <span class="token comment">// 判断 value 的类型，不同类型进行不同的处理</span>\n  <span class="token keyword">const</span> type <span class="token operator">=</span> schema<span class="token punctuation">.</span><span class="token property-access">type</span>\n  <span class="token keyword control-flow">switch</span> <span class="token punctuation">(</span>type<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">case</span> <span class="token string">\'null\'</span><span class="token operator">:</span>\n      code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n      json += $Null()\n      </span><span class="token template-punctuation string">`</span></span>\n      <span class="token keyword control-flow">break</span>\n    <span class="token keyword">case</span> <span class="token string">\'string\'</span><span class="token operator">:</span>\n      code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n      json += $String(obj</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>key<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">)\n      </span><span class="token template-punctuation string">`</span></span>\n      <span class="token keyword control-flow">break</span>\n    <span class="token keyword">case</span> <span class="token string">\'number\'</span><span class="token operator">:</span>\n    <span class="token keyword">case</span> <span class="token string">\'integer\'</span><span class="token operator">:</span>\n      code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n      json += $Number(obj</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>key<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">)\n      </span><span class="token template-punctuation string">`</span></span>\n      <span class="token keyword control-flow">break</span>\n    <span class="token keyword">case</span> <span class="token string">\'object\'</span><span class="token operator">:</span>\n      <span class="token comment">// 如果 value 为一个对象，需要一个新的方法进行构造</span>\n      funcName <span class="token operator">=</span> <span class="token punctuation">(</span>name <span class="token operator">+</span> key<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">replace</span><span class="token punctuation">(</span><span class="token regex"><span class="token regex-delimiter">/</span><span class="token regex-source language-regex">[-.\[\]]</span><span class="token regex-delimiter">/</span><span class="token regex-flags">g</span></span><span class="token punctuation">,</span> <span class="token string">\'\'</span><span class="token punctuation">)</span>\n      laterCode <span class="token operator">=</span> <span class="token function">buildObject</span><span class="token punctuation">(</span>schema<span class="token punctuation">,</span> laterCode<span class="token punctuation">,</span> funcName<span class="token punctuation">)</span>\n      code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n        json += </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>funcName<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">(obj</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>key<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">)\n      </span><span class="token template-punctuation string">`</span></span>\n      <span class="token keyword control-flow">break</span>\n    <span class="token keyword">case</span> <span class="token string">\'array\'</span><span class="token operator">:</span>\n      funcName <span class="token operator">=</span> <span class="token punctuation">(</span>name <span class="token operator">+</span> key<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">replace</span><span class="token punctuation">(</span><span class="token regex"><span class="token regex-delimiter">/</span><span class="token regex-source language-regex">[-.\[\]]</span><span class="token regex-delimiter">/</span><span class="token regex-flags">g</span></span><span class="token punctuation">,</span> <span class="token string">\'\'</span><span class="token punctuation">)</span>\n      laterCode <span class="token operator">=</span> <span class="token function">buildArray</span><span class="token punctuation">(</span>schema<span class="token punctuation">,</span> laterCode<span class="token punctuation">,</span> funcName<span class="token punctuation">)</span>\n      code <span class="token operator">+=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n        json += </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>funcName<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">(obj</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>key<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">)\n      </span><span class="token template-punctuation string">`</span></span>\n      <span class="token keyword control-flow">break</span>\n    <span class="token keyword module">default</span><span class="token operator">:</span>\n      <span class="token keyword control-flow">throw</span> <span class="token keyword">new</span> <span class="token class-name">Error</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>type<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> unsupported</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword control-flow">return</span> <span class="token punctuation">{</span>\n    code<span class="token punctuation">,</span>\n    laterCode\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>其实就是对 <code>type</code> 为 <code>&quot;object&quot;</code> 的 <code>properties</code> 进行一次遍历，然后针对 <code>value</code> 不同的类型进行二次处理，如果碰到新的对象，会构造一个新的函数进行处理。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 如果包含子对象</span>\n<span class="token keyword">const</span> stringify <span class="token operator">=</span> <span class="token function">build</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  type<span class="token operator">:</span> <span class="token string">\'object\'</span><span class="token punctuation">,</span>\n  properties<span class="token operator">:</span> <span class="token punctuation">{</span>\n    id<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'number\'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    info<span class="token operator">:</span> <span class="token punctuation">{</span>\n      type<span class="token operator">:</span> <span class="token string">\'object\'</span><span class="token punctuation">,</span>\n      properties<span class="token operator">:</span> <span class="token punctuation">{</span>\n        age<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'number\'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        name<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'string\'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span>stringify<span class="token punctuation">.</span><span class="token method function property-access">toString</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>\n</code></pre>\n<pre class="language-js"><code class="language-js"><span class="token keyword">function</span> <span class="token function">$main</span> <span class="token punctuation">(</span><span class="token parameter">obj</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> json <span class="token operator">=</span> <span class="token string">\'{\'</span>\n\n  json <span class="token operator">+=</span> <span class="token string">\'"id":\'</span>\n\n  json <span class="token operator">+=</span> $<span class="token known-class-name class-name">Number</span><span class="token punctuation">(</span>obj<span class="token punctuation">.</span><span class="token property-access">id</span><span class="token punctuation">)</span>\n  json <span class="token operator">+=</span> <span class="token string">\',\'</span>\n  json <span class="token operator">+=</span> <span class="token string">\'"info":\'</span>\n\n  json <span class="token operator">+=</span> <span class="token function">$maininfo</span><span class="token punctuation">(</span>obj<span class="token punctuation">.</span><span class="token property-access">info</span><span class="token punctuation">)</span>\n\n  json <span class="token operator">+=</span> <span class="token string">\'}\'</span>\n  <span class="token keyword control-flow">return</span> json\n<span class="token punctuation">}</span>\n\n<span class="token comment">// 子对象会通过另一个函数处理</span>\n<span class="token keyword">function</span> <span class="token function">$maininfo</span> <span class="token punctuation">(</span><span class="token parameter">obj</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> json <span class="token operator">=</span> <span class="token string">\'{\'</span>\n\n  json <span class="token operator">+=</span> <span class="token string">\'"age":\'</span>\n\n  json <span class="token operator">+=</span> $<span class="token known-class-name class-name">Number</span><span class="token punctuation">(</span>obj<span class="token punctuation">.</span><span class="token property-access">age</span><span class="token punctuation">)</span>\n  json <span class="token operator">+=</span> <span class="token string">\',\'</span>\n  json <span class="token operator">+=</span> <span class="token string">\'"name":\'</span>\n\n  json <span class="token operator">+=</span> $<span class="token known-class-name class-name">String</span><span class="token punctuation">(</span>obj<span class="token punctuation">.</span><span class="token property-access">name</span><span class="token punctuation">)</span>\n\n  json <span class="token operator">+=</span> <span class="token string">\'}\'</span>\n  <span class="token keyword control-flow">return</span> json\n<span class="token punctuation">}</span>\n</code></pre>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>当然，<code>fastify</code> 之所以号称自己快，内部还有一些其他的优化方法，例如，在路由库的实现上使用了 <a href="https://zh.wikipedia.org/zh-hans/%E5%9F%BA%E6%95%B0%E6%A0%91"><code>Radix Tree</code></a> 、对上下文对象可进行复用（使用  <a href="https://github.com/fastify/middie"><code>middie</code></a> 库）。本文只是介绍了其中的一种体现最重要明显优化思路，希望大家阅读之后能有所收获。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -34,7 +33,7 @@ export default {
         "张家喜"
     ],
     'date': "2020/12/13",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "前言 用过 Node.js 开发过的同学肯定都上手过 koa，因为他简单优雅的写法，再加上丰富的社区生态，而且现存的许多 Node.js 框架都是基于 koa 进行二次封装的。但是说到性能，就不得不提到一个知名框架： fastify ，听名字就知道...",
     'cover': "https://file.shenfq.com/pic/20201213162826.png",
     'categories': [
@@ -54,7 +53,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -74,7 +73,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -97,7 +96,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -119,7 +118,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -139,7 +138,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -159,7 +158,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -180,7 +179,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -200,7 +199,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -221,7 +220,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -241,7 +240,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -262,7 +261,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -282,7 +281,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -303,7 +302,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -326,7 +325,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -346,7 +345,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -366,7 +365,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -389,7 +388,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -410,7 +409,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -432,7 +431,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -454,7 +453,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -475,7 +474,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -496,7 +495,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -518,7 +517,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -540,7 +539,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -561,7 +560,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -582,7 +581,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -603,7 +602,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -624,7 +623,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -645,7 +644,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -666,7 +665,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -688,7 +687,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -711,7 +710,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -732,7 +731,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -754,7 +753,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -773,7 +772,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -795,7 +794,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -816,7 +815,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -838,7 +837,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -858,7 +857,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -879,7 +878,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -902,7 +901,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -926,7 +925,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -949,7 +948,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -968,7 +967,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -987,7 +986,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1011,7 +1010,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1032,7 +1031,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1055,7 +1054,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1076,7 +1075,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1096,7 +1095,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1118,7 +1117,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1139,7 +1138,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1160,7 +1159,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1183,7 +1182,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1205,7 +1204,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1226,7 +1225,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1246,7 +1245,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1267,7 +1266,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1288,7 +1287,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1309,7 +1308,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1331,7 +1330,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1351,7 +1350,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1371,7 +1370,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1392,7 +1391,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1413,7 +1412,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1433,7 +1432,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1454,7 +1453,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1475,7 +1474,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1496,7 +1495,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

@@ -9,7 +9,6 @@ export default {
             __html: '<h1>React 架构的演变 - 从递归到循环</h1>\n<p>这篇文章是 React 架构演变的第二篇，上一篇主要介绍了更新机制从同步修改为异步，这一篇重点介绍 Fiber 架构下通过循环遍历更新的过程，之所以要使用循环遍历的方式，是因为递归更新过程一旦开始就不能暂停，只能不断向下，直到递归结束或者出现异常。</p>\n<h2 id="%E9%80%92%E5%BD%92%E6%9B%B4%E6%96%B0%E7%9A%84%E5%AE%9E%E7%8E%B0">递归更新的实现<a class="anchor" href="#%E9%80%92%E5%BD%92%E6%9B%B4%E6%96%B0%E7%9A%84%E5%AE%9E%E7%8E%B0">§</a></h2>\n<p>React 15 的递归更新逻辑是先将需要更新的组件放入脏组件队列（这里在上篇文章已经介绍过，没看过的可以先看看<a href="https://blog.shenfq.com/2020/react-%E6%9E%B6%E6%9E%84%E7%9A%84%E6%BC%94%E5%8F%98-%E4%BB%8E%E5%90%8C%E6%AD%A5%E5%88%B0%E5%BC%82%E6%AD%A5/">《React 架构的演变 - 从同步到异步》</a>），然后取出组件进行一次递归，不停向下寻找子节点来查找是否需要更新。</p>\n<p>下面使用一段代码来简单描述一下这个过程：</p>\n<pre class="language-js"><code class="language-js"><span class="token function">updateComponent</span> <span class="token punctuation">(</span><span class="token parameter">prevElement<span class="token punctuation">,</span> nextElement</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>\n    <span class="token comment">// 如果组件的 type 和 key 都没有发生变化，进行更新</span>\n    prevElement<span class="token punctuation">.</span><span class="token property-access">type</span> <span class="token operator">===</span> nextElement<span class="token punctuation">.</span><span class="token property-access">type</span> <span class="token operator">&amp;&amp;</span>\n    prevElement<span class="token punctuation">.</span><span class="token property-access">key</span> <span class="token operator">===</span> nextElement<span class="token punctuation">.</span><span class="token property-access">key</span>\n  <span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 文本节点更新</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>prevElement<span class="token punctuation">.</span><span class="token property-access">type</span> <span class="token operator">===</span> <span class="token string">\'text\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>prevElement<span class="token punctuation">.</span><span class="token property-access">value</span> <span class="token operator">!==</span> nextElement<span class="token punctuation">.</span><span class="token property-access">value</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n            <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">replaceText</span><span class="token punctuation">(</span>nextElement<span class="token punctuation">.</span><span class="token property-access">value</span><span class="token punctuation">)</span>\n        <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n    <span class="token comment">// DOM 节点的更新</span>\n    <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 先更新 DOM 属性</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">updateProps</span><span class="token punctuation">(</span>prevElement<span class="token punctuation">,</span> nextElement<span class="token punctuation">)</span>\n      <span class="token comment">// 再更新 children</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">updateChildren</span><span class="token punctuation">(</span>prevElement<span class="token punctuation">,</span> nextElement<span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  <span class="token comment">// 如果组件的 type 和 key 发生变化，直接重新渲染组件</span>\n  <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 触发 unmount 生命周期</span>\n    <span class="token maybe-class-name">ReactReconciler</span><span class="token punctuation">.</span><span class="token method function property-access">unmountComponent</span><span class="token punctuation">(</span>prevElement<span class="token punctuation">)</span>\n    <span class="token comment">// 渲染新的组件</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">_instantiateReactComponent</span><span class="token punctuation">(</span>nextElement<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">,</span>\n<span class="token function">updateChildren</span> <span class="token punctuation">(</span><span class="token parameter">prevElement<span class="token punctuation">,</span> nextElement</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> prevChildren <span class="token operator">=</span> prevElement<span class="token punctuation">.</span><span class="token property-access">children</span>\n  <span class="token keyword">var</span> nextChildren <span class="token operator">=</span> nextElement<span class="token punctuation">.</span><span class="token property-access">children</span>\n  <span class="token comment">// 省略通过 key 重新排序的 diff 过程</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>prevChildren <span class="token operator">===</span> <span class="token keyword null nil">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token punctuation">}</span> <span class="token comment">// 渲染新的子节点</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>nextChildren <span class="token operator">===</span> <span class="token keyword null nil">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token punctuation">}</span> <span class="token comment">// 清空所有子节点</span>\n  <span class="token comment">// 子节点对比</span>\n  prevChildren<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">prevChild<span class="token punctuation">,</span> index</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> nextChild <span class="token operator">=</span> nextChildren<span class="token punctuation">[</span>index<span class="token punctuation">]</span>\n    <span class="token comment">// 递归过程</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">updateComponent</span><span class="token punctuation">(</span>prevChild<span class="token punctuation">,</span> nextChild<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>为了更清晰的看到这个过程，我们还是写一个简单的Demo，构造一个 3 * 3 的 Table 组件。</p>\n<p><img src="https://file.shenfq.com/pic/20200926153531.png" alt="Table"></p>\n<pre class="language-jsx"><code class="language-jsx"><span class="token comment">// <a class="token url-link" href="https://codesandbox.io/embed/react-sync-demo-nlijf">https://codesandbox.io/embed/react-sync-demo-nlijf</a></span>\n<span class="token keyword">class</span> <span class="token class-name">Col</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>\n  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 渲染之前暂停 8ms，给 render 制造一点点压力</span>\n    <span class="token keyword">const</span> start <span class="token operator">=</span> <span class="token dom variable">performance</span><span class="token punctuation">.</span><span class="token method function property-access">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">while</span> <span class="token punctuation">(</span><span class="token dom variable">performance</span><span class="token punctuation">.</span><span class="token method function property-access">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-</span> start <span class="token operator">&lt;</span> <span class="token number">8</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">return</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">></span></span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">props</span><span class="token punctuation">.</span><span class="token property-access">children</span><span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">></span></span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword module">export</span> <span class="token keyword module">default</span> <span class="token keyword">class</span> <span class="token class-name">Demo</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>\n  state <span class="token operator">=</span> <span class="token punctuation">{</span>\n    val<span class="token operator">:</span> <span class="token number">0</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> <span class="token punctuation">{</span> val <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">state</span>\n    <span class="token keyword">const</span> array <span class="token operator">=</span> <span class="token known-class-name class-name">Array</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">fill</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token comment">// 构造一个 3 * 3 表格</span>\n    <span class="token keyword">const</span> rows <span class="token operator">=</span> array<span class="token punctuation">.</span><span class="token method function property-access">map</span><span class="token punctuation">(</span>\n      <span class="token punctuation">(</span><span class="token parameter">_<span class="token punctuation">,</span> row</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tr</span> <span class="token attr-name">key</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span>row<span class="token punctuation">}</span></span><span class="token punctuation">></span></span><span class="token plain-text">\n        </span><span class="token punctuation">{</span>array<span class="token punctuation">.</span><span class="token method function property-access">map</span><span class="token punctuation">(</span>\n          <span class="token punctuation">(</span><span class="token parameter">_<span class="token punctuation">,</span> col</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">Col</span></span> <span class="token attr-name">key</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span>col<span class="token punctuation">}</span></span><span class="token punctuation">></span></span><span class="token punctuation">{</span>val<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span><span class="token class-name">Col</span></span><span class="token punctuation">></span></span>\n        <span class="token punctuation">)</span><span class="token punctuation">}</span><span class="token plain-text">\n      </span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tr</span><span class="token punctuation">></span></span>\n    <span class="token punctuation">)</span>\n    <span class="token keyword control-flow">return</span> <span class="token punctuation">(</span>\n      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>table</span> <span class="token attr-name">className</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>table<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token plain-text">\n        </span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tbody</span><span class="token punctuation">></span></span><span class="token punctuation">{</span>rows<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tbody</span><span class="token punctuation">></span></span><span class="token plain-text">\n      </span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>table</span><span class="token punctuation">></span></span>\n    <span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>然后每秒对 Table 里面的值更新一次，让 val 每次 + 1，从 0 ~ 9 不停循环。</p>\n<p><img src="https://file.shenfq.com/pic/20200926153958.gif" alt="Table Loop"></p>\n<pre class="language-jsx"><code class="language-jsx"><span class="token comment">// <a class="token url-link" href="https://codesandbox.io/embed/react-sync-demo-nlijf">https://codesandbox.io/embed/react-sync-demo-nlijf</a></span>\n<span class="token keyword module">export</span> <span class="token keyword module">default</span> <span class="token keyword">class</span> <span class="token class-name">Demo</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>\n  <span class="token function-variable function">tick</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n    <span class="token function">setTimeout</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">setState</span><span class="token punctuation">(</span><span class="token punctuation">{</span> val<span class="token operator">:</span> next <span class="token operator">&lt;</span> <span class="token number">10</span> <span class="token operator">?</span> next <span class="token operator">:</span> <span class="token number">0</span> <span class="token punctuation">}</span><span class="token punctuation">)</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">tick</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token number">1000</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">componentDidMount</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">tick</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>完整代码的线上地址： <a href="https://codesandbox.io/embed/react-sync-demo-nlijf">https://codesandbox.io/embed/react-sync-demo-nlijf</a>。Demo 组件每次调用 setState，React 会先判断该组件的类型有没有发生修改，如果有就整个组件进行重新渲染，如果没有会更新 state，然后向下判断 table 组件，table 组件继续向下判断 tr 组件，tr 组件再向下判断 td 组件，最后发现 td 组件下的文本节点发生了修改，通过 DOM API 更新。</p>\n<p><img src="https://file.shenfq.com/pic/20200926154214.gif" alt="Update"></p>\n<p>通过 Performance 的函数调用堆栈也能清晰的看到这个过程，updateComponent 之后 的 updateChildren 会继续调用子组件的 updateComponent，直到递归完所有组件，表示更新完成。</p>\n<p><img src="https://file.shenfq.com/pic/20200926161103.png" alt="调用堆栈"></p>\n<p>递归的缺点很明显，不能暂停更新，一旦开始必须从头到尾，这与 React 16 拆分时间片，给浏览器喘口气的理念明显不符，所以 React 必须要切换架构，将虚拟 DOM 从树形结构修改为链表结构。</p>\n<h2 id="%E5%8F%AF%E5%BE%AA%E7%8E%AF%E7%9A%84-fiber">可循环的 Fiber<a class="anchor" href="#%E5%8F%AF%E5%BE%AA%E7%8E%AF%E7%9A%84-fiber">§</a></h2>\n<p>这里说的链表结构就是 Fiber 了，链表结构最大的优势就是可以通过循环的方式来遍历，只要记住当前遍历的位置，即使中断后也能快速还原，重新开始遍历。</p>\n<p>我们先看看一个 Fiber 节点的数据结构：</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">function</span> <span class="token function"><span class="token maybe-class-name">FiberNode</span></span> <span class="token punctuation">(</span><span class="token parameter">tag<span class="token punctuation">,</span> key</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 节点 key，主要用于了优化列表 diff</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">key</span> <span class="token operator">=</span> key\n  <span class="token comment">// 节点类型；FunctionComponent: 0, ClassComponent: 1, HostRoot: 3 ...</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tag</span> <span class="token operator">=</span> tag\n\n  <span class="token comment">// 子节点</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">child</span> <span class="token operator">=</span> <span class="token keyword null nil">null</span>\n  <span class="token comment">// 父节点</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token keyword control-flow">return</span> <span class="token operator">=</span> <span class="token keyword null nil">null</span> \n  <span class="token comment">// 兄弟节点</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">sibling</span> <span class="token operator">=</span> <span class="token keyword null nil">null</span>\n  \n  <span class="token comment">// 更新队列，用于暂存 setState 的值</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">updateQueue</span> <span class="token operator">=</span> <span class="token keyword null nil">null</span>\n  \n  <span class="token comment">// 节点更新过期时间，用于时间分片</span>\n  <span class="token comment">// react 17 改为：lanes、childLanes</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">expirationTime</span> <span class="token operator">=</span> <span class="token maybe-class-name">NoLanes</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">childExpirationTime</span> <span class="token operator">=</span> <span class="token maybe-class-name">NoLanes</span>\n\n  <span class="token comment">// 对应到页面的真实 DOM 节点</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">stateNode</span> <span class="token operator">=</span> <span class="token keyword null nil">null</span>\n  <span class="token comment">// Fiber 节点的副本，可以理解为备胎，主要用于提升更新的性能</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">alternate</span> <span class="token operator">=</span> <span class="token keyword null nil">null</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>下面举个例子，我们这里有一段普通的 HTML 文本：</p>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>table</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>table<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tr</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">></span></span>1<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">></span></span>1<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tr</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>tr</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>td</span><span class="token punctuation">></span></span>1<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>td</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>tr</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>table</span><span class="token punctuation">></span></span>\n</code></pre>\n<p>在之前的 React 版本中，jsx 会转化为 createElement 方法，创建树形结构的虚拟 DOM。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> <span class="token maybe-class-name">VDOMRoot</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n  type<span class="token operator">:</span> <span class="token string">\'table\'</span><span class="token punctuation">,</span>\n  props<span class="token operator">:</span> <span class="token punctuation">{</span> className<span class="token operator">:</span> <span class="token string">\'table\'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  children<span class="token operator">:</span> <span class="token punctuation">[</span>\n    <span class="token punctuation">{</span>\n      type<span class="token operator">:</span> <span class="token string">\'tr\'</span><span class="token punctuation">,</span>\n      props<span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n      children<span class="token operator">:</span> <span class="token punctuation">[</span>\n        <span class="token punctuation">{</span>\n          type<span class="token operator">:</span> <span class="token string">\'td\'</span><span class="token punctuation">,</span>\n          props<span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n          children<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">{</span>type<span class="token operator">:</span> <span class="token string">\'text\'</span><span class="token punctuation">,</span> value<span class="token operator">:</span> <span class="token string">\'1\'</span><span class="token punctuation">}</span><span class="token punctuation">]</span>\n        <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        <span class="token punctuation">{</span>\n          type<span class="token operator">:</span> <span class="token string">\'td\'</span><span class="token punctuation">,</span>\n          props<span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n          children<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">{</span>type<span class="token operator">:</span> <span class="token string">\'text\'</span><span class="token punctuation">,</span> value<span class="token operator">:</span> <span class="token string">\'1\'</span><span class="token punctuation">}</span><span class="token punctuation">]</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">]</span>\n    <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    <span class="token punctuation">{</span>\n      type<span class="token operator">:</span> <span class="token string">\'tr\'</span><span class="token punctuation">,</span>\n      props<span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n      children<span class="token operator">:</span> <span class="token punctuation">[</span>\n        <span class="token punctuation">{</span>\n          type<span class="token operator">:</span> <span class="token string">\'td\'</span><span class="token punctuation">,</span>\n          props<span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n          children<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">{</span>type<span class="token operator">:</span> <span class="token string">\'text\'</span><span class="token punctuation">,</span> value<span class="token operator">:</span> <span class="token string">\'1\'</span><span class="token punctuation">}</span><span class="token punctuation">]</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">]</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>Fiber 架构下，结构如下：</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 有所简化，并非与 React 真实的 Fiber 结构一致</span>\n<span class="token keyword">const</span> <span class="token maybe-class-name">FiberRoot</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n  type<span class="token operator">:</span> <span class="token string">\'table\'</span><span class="token punctuation">,</span>\n  <span class="token keyword control-flow">return</span><span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>\n  sibling<span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>\n  child<span class="token operator">:</span> <span class="token punctuation">{</span>\n    type<span class="token operator">:</span> <span class="token string">\'tr\'</span><span class="token punctuation">,</span>\n    <span class="token keyword control-flow">return</span><span class="token operator">:</span> <span class="token maybe-class-name">FiberNode</span><span class="token punctuation">,</span> <span class="token comment">// table 的 FiberNode</span>\n    sibling<span class="token operator">:</span> <span class="token punctuation">{</span>\n      type<span class="token operator">:</span> <span class="token string">\'tr\'</span><span class="token punctuation">,</span>\n      <span class="token keyword control-flow">return</span><span class="token operator">:</span> <span class="token maybe-class-name">FiberNode</span><span class="token punctuation">,</span> <span class="token comment">// table 的 FiberNode</span>\n      sibling<span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>\n      child<span class="token operator">:</span> <span class="token punctuation">{</span>\n        type<span class="token operator">:</span> <span class="token string">\'td\'</span><span class="token punctuation">,</span>\n        <span class="token keyword control-flow">return</span><span class="token operator">:</span> <span class="token maybe-class-name">FiberNode</span><span class="token punctuation">,</span> <span class="token comment">// tr 的 FiberNode</span>\n        sibling<span class="token operator">:</span> <span class="token punctuation">{</span>\n          type<span class="token operator">:</span> <span class="token string">\'td\'</span><span class="token punctuation">,</span>\n          <span class="token keyword control-flow">return</span><span class="token operator">:</span> <span class="token maybe-class-name">FiberNode</span><span class="token punctuation">,</span> <span class="token comment">// tr 的 FiberNode</span>\n          sibling<span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>\n          child<span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>\n          text<span class="token operator">:</span> <span class="token string">\'1\'</span> <span class="token comment">// 子节点仅有文本节点</span>\n        <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        child<span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>\n        text<span class="token operator">:</span> <span class="token string">\'1\'</span> <span class="token comment">// 子节点仅有文本节点</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    child<span class="token operator">:</span> <span class="token punctuation">{</span>\n      type<span class="token operator">:</span> <span class="token string">\'td\'</span><span class="token punctuation">,</span>\n      <span class="token keyword control-flow">return</span><span class="token operator">:</span> <span class="token maybe-class-name">FiberNode</span><span class="token punctuation">,</span> <span class="token comment">// tr 的 FiberNode</span>\n      sibling<span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>\n      child<span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>\n      text<span class="token operator">:</span> <span class="token string">\'1\'</span> <span class="token comment">// 子节点仅有文本节点</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20200929103938.png" alt="Fiber"></p>\n<h2 id="%E5%BE%AA%E7%8E%AF%E6%9B%B4%E6%96%B0%E7%9A%84%E5%AE%9E%E7%8E%B0">循环更新的实现<a class="anchor" href="#%E5%BE%AA%E7%8E%AF%E6%9B%B4%E6%96%B0%E7%9A%84%E5%AE%9E%E7%8E%B0">§</a></h2>\n<p>那么，在 setState 的时候，React 是如何进行一次 Fiber 的遍历的呢？</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">let</span> workInProgress <span class="token operator">=</span> <span class="token maybe-class-name">FiberRoot</span>\n\n<span class="token comment">// 遍历 Fiber 节点，如果时间片时间用完就停止遍历</span>\n<span class="token keyword">function</span> <span class="token function">workLoopConcurrent</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">while</span> <span class="token punctuation">(</span>\n    workInProgress <span class="token operator">!==</span> <span class="token keyword null nil">null</span> <span class="token operator">&amp;&amp;</span>\n    <span class="token operator">!</span><span class="token function">shouldYield</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">// 用于判断当前时间片是否到期</span>\n  <span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token function">performUnitOfWork</span><span class="token punctuation">(</span>workInProgress<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> <span class="token function">performUnitOfWork</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> next <span class="token operator">=</span> <span class="token function">beginWork</span><span class="token punctuation">(</span>workInProgress<span class="token punctuation">)</span> <span class="token comment">// 返回当前 Fiber 的 child</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>next<span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">// child 存在</span>\n    <span class="token comment">// 重置 workInProgress 为 child</span>\n    workInProgress <span class="token operator">=</span> next\n  <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span> <span class="token comment">// child 不存在</span>\n    <span class="token comment">// 向上回溯节点</span>\n    <span class="token keyword">let</span> completedWork <span class="token operator">=</span> workInProgress\n    <span class="token keyword control-flow">while</span> <span class="token punctuation">(</span>completedWork <span class="token operator">!==</span> <span class="token keyword null nil">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 收集副作用，主要是用于标记节点是否需要操作 DOM</span>\n      <span class="token function">completeWork</span><span class="token punctuation">(</span>completedWork<span class="token punctuation">)</span>\n\n      <span class="token comment">// 获取 Fiber.sibling</span>\n      <span class="token keyword">let</span> siblingFiber <span class="token operator">=</span> workInProgress<span class="token punctuation">.</span><span class="token property-access">sibling</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>siblingFiber<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token comment">// sibling 存在，则跳出 complete 流程，继续 beginWork</span>\n        workInProgress <span class="token operator">=</span> siblingFiber\n        <span class="token keyword control-flow">return</span><span class="token punctuation">;</span>\n      <span class="token punctuation">}</span>\n\n      completedWork <span class="token operator">=</span> completedWork<span class="token punctuation">.</span><span class="token keyword control-flow">return</span>\n      workInProgress <span class="token operator">=</span> completedWork\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> <span class="token function">beginWork</span><span class="token punctuation">(</span><span class="token parameter">workInProgress</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 调用 render 方法，创建子 Fiber，进行 diff</span>\n  <span class="token comment">// 操作完毕后，返回当前 Fiber 的 child</span>\n  <span class="token keyword control-flow">return</span> workInProgress<span class="token punctuation">.</span><span class="token property-access">child</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">function</span> <span class="token function">completeWork</span><span class="token punctuation">(</span><span class="token parameter">workInProgress</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 收集节点副作用</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>Fiber 的遍历本质上就是一个循环，全局有一个 <code>workInProgress</code> 变量，用来存储当前正在 diff 的节点，先通过 <code>beginWork</code> 方法对当前节点然后进行 diff 操作（diff 之前会调用 render，重新计算 state、prop），并返回当前节点的第一个子节点( <code>fiber.child</code>)作为新的工作节点，直到不存在子节点。然后，对当前节点调用 <code>completedWork</code> 方法，存储 <code>beginWork</code> 过程中产生的副作用，如果当前节点存在兄弟节点( <code>fiber.sibling</code>)，则将工作节点修改为兄弟节点，重新进入 <code>beginWork</code> 流程。直到  <code>completedWork</code> 重新返回到根节点，执行 <code>commitRoot</code> 将所有的副作用反应到真实 DOM 中。</p>\n<p><img src="https://file.shenfq.com/pic/20200929115604.gif" alt="Fiber work loop"></p>\n<p>在一次遍历过程中，每个节点都会经历 <code>beginWork</code>、<code>completeWork</code> ，直到返回到根节点，最后通过 <code>commitRoot</code> 将所有的更新提交，关于这部分的内容可以看：<a href="https://react.iamkasong.com/process/reconciler.html">《React 技术揭秘》</a>。</p>\n<h2 id="%E6%97%B6%E9%97%B4%E5%88%86%E7%89%87%E7%9A%84%E7%A7%98%E5%AF%86">时间分片的秘密<a class="anchor" href="#%E6%97%B6%E9%97%B4%E5%88%86%E7%89%87%E7%9A%84%E7%A7%98%E5%AF%86">§</a></h2>\n<p>前面说过，Fiber 结构的遍历是支持中断恢复，为了观察这个过程，我们将之前的 3 * 3 的 Table 组件改成 Concurrent 模式，线上地址：<a href="https://codesandbox.io/embed/react-async-demo-h1lbz">https://codesandbox.io/embed/react-async-demo-h1lbz</a>。由于每次调用 Col 组件的 render 部分需要耗时 8ms，会超出了一个时间片，所以每个 td 部分都会暂停一次。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Col</span> <span class="token keyword">extends</span> <span class="token class-name">React<span class="token punctuation">.</span>Component</span> <span class="token punctuation">{</span>\n  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 渲染之前暂停 8ms，给 render 制造一点点压力</span>\n    <span class="token keyword">const</span> start <span class="token operator">=</span> <span class="token dom variable">performance</span><span class="token punctuation">.</span><span class="token method function property-access">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n    <span class="token keyword control-flow">while</span> <span class="token punctuation">(</span><span class="token dom variable">performance</span><span class="token punctuation">.</span><span class="token method function property-access">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">-</span> start <span class="token operator">&lt;</span> <span class="token number">8</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n    <span class="token keyword control-flow">return</span> <span class="token operator">&lt;</span>td<span class="token operator">></span><span class="token punctuation">{</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">props</span><span class="token punctuation">.</span><span class="token property-access">children</span><span class="token punctuation">}</span><span class="token operator">&lt;</span><span class="token operator">/</span>td<span class="token operator">></span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>在这个 3 * 3 组件里，一共有 9 个 Col 组件，所以会有 9 次耗时任务，分散在 9 个时间片进行，通过 Performance 的调用栈可以看到具体情况：</p>\n<p><img src="https://file.shenfq.com/pic/20200929143815.png" alt="异步模式的调用栈"></p>\n<p>在非 Concurrent 模式下，Fiber 节点的遍历是一次性进行的，并不会切分多个时间片，差别就是在遍历的时候调用了 <code>workLoopSync</code> 方法，该方法并不会判断时间片是否用完。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 遍历 Fiber 节点</span>\n<span class="token keyword">function</span> <span class="token function">workLoopSync</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">while</span> <span class="token punctuation">(</span>workInProgress <span class="token operator">!==</span> <span class="token keyword null nil">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token function">performUnitOfWork</span><span class="token punctuation">(</span>workInProgress<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20200929153752.png" alt="同步模式的调用栈"></p>\n<p>通过上面的分析可以看出， <code>shouldYield</code> 方法决定了当前时间片是否已经用完，这也是决定 React 是同步渲染还是异步渲染的关键。如果去除任务优先级的概念，<code>shouldYield</code> 方法可以说很简单，就是判断了当前的时间，是否已经超过了预设的 <code>deadline</code>。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">function</span> <span class="token function">getCurrentTime</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token dom variable">performance</span><span class="token punctuation">.</span><span class="token method function property-access">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">function</span> <span class="token function">shouldYield</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 获取当前时间</span>\n  <span class="token keyword">var</span> currentTime <span class="token operator">=</span> <span class="token function">getCurrentTime</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token keyword control-flow">return</span> currentTime <span class="token operator">>=</span> deadline\n<span class="token punctuation">}</span>\n</code></pre>\n<p><code>deadline</code> 又是如何得的呢？可以回顾上一篇文章（<a href="https://blog.shenfq.com/2020/react-%E6%9E%B6%E6%9E%84%E7%9A%84%E6%BC%94%E5%8F%98-%E4%BB%8E%E5%90%8C%E6%AD%A5%E5%88%B0%E5%BC%82%E6%AD%A5/">《React 架构的演变 - 从同步到异步》</a>）提到的 ChannelMessage，更新开始的时候会通过 <code>requestHostCallback</code>（即：<code>port2.send</code>）发送异步消息，在 <code>performWorkUntilDeadline</code> （即：<code>port1.onmessage</code>）中接收消息。<code>performWorkUntilDeadline</code> 每次接收到消息时，表示已经进入了下一个任务队列，这个时候就会更新 <code>deadline</code>。</p>\n<p><img src="https://file.shenfq.com/pic/20200927105705.png" alt="异步调用栈"></p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">var</span> channel <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">MessageChannel</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n<span class="token keyword">var</span> port <span class="token operator">=</span> channel<span class="token punctuation">.</span><span class="token property-access">port2</span>\nchannel<span class="token punctuation">.</span><span class="token property-access">port1</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">onmessage</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token function">performWorkUntilDeadline</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>scheduledHostCallback <span class="token operator">!==</span> <span class="token keyword null nil">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">var</span> currentTime <span class="token operator">=</span> <span class="token function">getCurrentTime</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token comment">// 重置超时时间 </span>\n    deadline <span class="token operator">=</span> currentTime <span class="token operator">+</span> yieldInterval\n    \n    <span class="token keyword">var</span> hasTimeRemaining <span class="token operator">=</span> <span class="token boolean">true</span>\n    <span class="token keyword">var</span> hasMoreWork <span class="token operator">=</span> <span class="token function">scheduledHostCallback</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>hasMoreWork<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 已经没有任务了，修改状态 </span>\n      isMessageLoopRunning <span class="token operator">=</span> <span class="token boolean">false</span><span class="token punctuation">;</span>\n      scheduledHostCallback <span class="token operator">=</span> <span class="token keyword null nil">null</span><span class="token punctuation">;</span>\n    <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 还有任务，放到下个任务队列执行，给浏览器喘息的机会 </span>\n      port<span class="token punctuation">.</span><span class="token method function property-access">postMessage</span> <span class="token punctuation">(</span><span class="token keyword null nil">null</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n    isMessageLoopRunning <span class="token operator">=</span> <span class="token boolean">false</span><span class="token punctuation">;</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n\n<span class="token function-variable function">requestHostCallback</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">callback</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">//callback 挂载到 scheduledHostCallback</span>\n  scheduledHostCallback <span class="token operator">=</span> callback\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>isMessageLoopRunning<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    isMessageLoopRunning <span class="token operator">=</span> <span class="token boolean">true</span>\n    <span class="token comment">// 推送消息，下个队列队列调用 callback</span>\n    port<span class="token punctuation">.</span><span class="token method function property-access">postMessage</span> <span class="token punctuation">(</span><span class="token keyword null nil">null</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>超时时间的设置就是在当前时间的基础上加上了一个 <code>yieldInterval</code>， 这个 <code>yieldInterval</code> 的值，默认是 5ms。</p>\n<pre class="language-js"><code class="language-js">deadline <span class="token operator">=</span> currentTime <span class="token operator">+</span> yieldInterval\n</code></pre>\n<p>同时 React 也提供了修改 <code>yieldInterval</code> 的手段，通过手动指定 fps，来确定一帧的具体时间（单位：ms），fps 越高，一个时间分片的时间就越短，对设备的性能要求就越高。</p>\n<pre class="language-js"><code class="language-js"><span class="token function-variable function">forceFrameRate</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">fps</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fps <span class="token operator">&lt;</span> <span class="token number">0</span> <span class="token operator">||</span> fps <span class="token operator">></span> <span class="token number">125</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 帧率仅支持 0~125</span>\n    <span class="token keyword control-flow">return</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fps <span class="token operator">></span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 一般 60 fps 的设备</span>\n    <span class="token comment">// 一个时间分片的时间为 Math.floor(1000/60) = 16</span>\n    yieldInterval <span class="token operator">=</span> <span class="token known-class-name class-name">Math</span><span class="token punctuation">.</span><span class="token method function property-access">floor</span><span class="token punctuation">(</span><span class="token number">1000</span> <span class="token operator">/</span> fps<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n    <span class="token comment">// reset the framerate</span>\n    yieldInterval <span class="token operator">=</span> <span class="token number">5</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>下面我们将异步逻辑、循环更新、时间分片串联起来。先回顾一下之前的文章讲过，Concurrent 模式下，setState 后的调用顺序：</p>\n<pre class="language-js"><code class="language-js"><span class="token maybe-class-name">Component</span><span class="token punctuation">.</span><span class="token method function property-access">setState</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token arrow operator">=></span> <span class="token function">enqueueSetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token arrow operator">=></span> <span class="token function">scheduleUpdate</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token arrow operator">=></span> <span class="token function">scheduleCallback</span><span class="token punctuation">(</span><span class="token parameter">performConcurrentWorkOnRoot</span><span class="token punctuation">)</span>\n  <span class="token arrow operator">=></span> <span class="token function">requestHostCallback</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token arrow operator">=></span> <span class="token function">postMessage</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token arrow operator">=></span> <span class="token function">performWorkUntilDeadline</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n</code></pre>\n<p><code>scheduleCallback</code> 方法会将传入的回调（<code>performConcurrentWorkOnRoot</code>）组装成一个任务放入 <code>taskQueue</code> 中，然后调用 <code>requestHostCallback</code> 发送一个消息，进入异步任务。<code>performWorkUntilDeadline</code> 接收到异步消息，从  <code>taskQueue</code>  取出任务开始执行，这里的任务就是之前传入的  <code>performConcurrentWorkOnRoot</code> 方法，这个方法最后会调用<code>workLoopConcurrent</code>（<code>workLoopConcurrent</code> 前面已经介绍过了，这个不再重复）。如果 <code>workLoopConcurrent</code> 是由于超时中断的，<code>hasMoreWork</code> 返回为 true，通过 <code>postMessage</code> 发送消息，将操作延迟到下一个任务队列。</p>\n<p><img src="https://file.shenfq.com/pic/20200929195346.png" alt="流程图"></p>\n<p>到这里整个流程已经结束，希望大家看完文章能有所收获，下一篇文章会介绍 Fiber 架构下 Hooks 的实现。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -36,7 +35,7 @@ export default {
         "张家喜"
     ],
     'date': "2020/09/29",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "这篇文章是 React 架构演变的第二篇，上一篇主要介绍了更新机制从同步修改为异步，这一篇重点介绍 Fiber 架构下通过循环遍历更新的过程，之所以要使用循环遍历的方式，是因为递归更新过程一旦开始就不能暂停，只能不断向下，直...",
     'cover': "https://file.shenfq.com/pic/20200926153531.png",
     'categories': [
@@ -55,7 +54,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -75,7 +74,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -98,7 +97,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -120,7 +119,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -140,7 +139,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -160,7 +159,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -181,7 +180,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -201,7 +200,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -222,7 +221,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -242,7 +241,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -263,7 +262,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -283,7 +282,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -304,7 +303,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -327,7 +326,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -347,7 +346,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -367,7 +366,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -390,7 +389,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -411,7 +410,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -433,7 +432,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -455,7 +454,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -476,7 +475,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -497,7 +496,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -519,7 +518,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -541,7 +540,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -562,7 +561,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -583,7 +582,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -604,7 +603,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -625,7 +624,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -646,7 +645,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -667,7 +666,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -689,7 +688,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -712,7 +711,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -733,7 +732,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -755,7 +754,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -774,7 +773,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -796,7 +795,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -817,7 +816,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -839,7 +838,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -859,7 +858,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -880,7 +879,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -903,7 +902,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -927,7 +926,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -950,7 +949,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -969,7 +968,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -988,7 +987,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1012,7 +1011,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1033,7 +1032,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1056,7 +1055,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1077,7 +1076,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1097,7 +1096,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1119,7 +1118,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1140,7 +1139,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1161,7 +1160,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1184,7 +1183,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1206,7 +1205,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1227,7 +1226,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1247,7 +1246,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1268,7 +1267,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1289,7 +1288,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1310,7 +1309,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1332,7 +1331,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1352,7 +1351,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1372,7 +1371,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1393,7 +1392,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1414,7 +1413,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1434,7 +1433,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1455,7 +1454,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1476,7 +1475,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1497,7 +1496,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

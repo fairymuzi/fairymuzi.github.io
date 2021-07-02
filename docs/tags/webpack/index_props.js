@@ -19,7 +19,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

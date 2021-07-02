@@ -9,7 +9,6 @@ export default {
             __html: '<h1>使用ESLint+Prettier来统一前端代码风格</h1>\n<blockquote>\n<p>加分号还是不加分号？tab还是空格？你还在为代码风格与同事争论得面红耳赤吗？</p>\n</blockquote>\n<p>正文之前，先看个段子放松一下： <a href="https://zhuanlan.zhihu.com/p/19700946">去死吧！你这个异教徒！</a></p>\n<p>想起自己刚入行的时候，从svn上把代码checkout下来，看到同事写的代码，大括号居然换行了。心中暗骂，这个人是不是个**，大括号为什么要换行？年轻气盛的我，居然满腔怒火，将空行一一删掉。\n但是关于代码风格，我们很难区分谁对谁错，不同的人有不同偏好，唯有强制要求才能规避争论。</p>\n<p>所以，团队关于代码风格必须遵循两个基本原则：</p>\n<ol>\n<li>少数服从多数；</li>\n<li>用工具统一风格。</li>\n</ol>\n<p>本文将介绍，如何使用ESLint + Prettier来统一我们的前端代码风格。</p>\n<!-- more -->\n<h2 id="prettier%E6%98%AF%E4%BB%80%E4%B9%88">Prettier是什么？<a class="anchor" href="#prettier%E6%98%AF%E4%BB%80%E4%B9%88">§</a></h2>\n<p>首先，对应ESLint大多都很熟悉，用来进行代码的校验，但是Prettier（直译过来就是&quot;更漂亮的&quot;😂）听得可能就比较少了。js作为一门灵活的弱类型语言，代码风格千奇百怪，一千个人写js就有一千种写法。虽然js没有官方推荐的代码规范，不过社区有些比较热门的代码规范，比如<a href="https://standardjs.com/readme-zhcn.html">standardjs</a>、<a href="https://github.com/airbnb/javascript">airbnb</a>。使用ESLint配合这些规范，能够检测出代码中的潜在问题，提高代码质量，但是并不能完全统一代码风格，因为这些代码规范的重点并不在代码风格上（虽然有一些限制）。</p>\n<h4 id="%E4%B8%8B%E9%9D%A2%E5%BC%80%E5%A7%8B%E5%AE%89%E5%88%A9prettier">下面开始安利，Prettier。<a class="anchor" href="#%E4%B8%8B%E9%9D%A2%E5%BC%80%E5%A7%8B%E5%AE%89%E5%88%A9prettier">§</a></h4>\n<p>Prettier是一个能够完全统一你和同事代码风格的利器，假如你有个c++程序员转行过来写前端的同事，你发现你们代码风格完全不一样，你难道要一行行去修改他的代码吗，就算你真的去改，你的需求怎么办，所以没有人真的愿意在保持代码风格统一上面浪费时间。选择Prettier能够让你节省出时间来写更多的bug（不对，是修更多的bug），并且统一的代码风格能保证代码的可读性。</p>\n<h4 id="%E7%9C%8B%E7%9C%8Bprettier%E5%B9%B2%E7%9A%84%E5%A5%BD%E4%BA%8B">看看Prettier干的好事。<a class="anchor" href="#%E7%9C%8B%E7%9C%8Bprettier%E5%B9%B2%E7%9A%84%E5%A5%BD%E4%BA%8B">§</a></h4>\n<p><img src="https://file.shenfq.com/18-6-18/90739745.jpg" alt="gif">\n<img src="https://file.shenfq.com/18-6-18/93998995.jpg" alt="gif"></p>\n<p>能支持jsx</p>\n<p><img src="https://file.shenfq.com/18-6-18/85648012.jpg" alt="gif"></p>\n<p>也能支持css</p>\n<p><img src="https://file.shenfq.com/18-6-18/55246702.jpg" alt="gif"></p>\n<p>唯一的遗憾是，暂时还不能格式化vue模版文件中template部分。</p>\n<h2 id="eslint-%E4%B8%8E-prettier%E9%85%8D%E5%90%88%E4%BD%BF%E7%94%A8">ESLint 与 Prettier配合使用<a class="anchor" href="#eslint-%E4%B8%8E-prettier%E9%85%8D%E5%90%88%E4%BD%BF%E7%94%A8">§</a></h2>\n<p>首先肯定是需要安装<code>prettier</code>，并且你的项目中已经使用了ESLint，有<code>eslintrc.js</code>配置文件。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token function">npm</span> i -D prettier\n</code></pre>\n<h4 id="%E9%85%8D%E5%90%88eslint%E6%A3%80%E6%B5%8B%E4%BB%A3%E7%A0%81%E9%A3%8E%E6%A0%BC">配合ESLint检测代码风格<a class="anchor" href="#%E9%85%8D%E5%90%88eslint%E6%A3%80%E6%B5%8B%E4%BB%A3%E7%A0%81%E9%A3%8E%E6%A0%BC">§</a></h4>\n<p>安装插件：</p>\n<pre class="language-bash"><code class="language-bash"><span class="token function">npm</span> i -D eslint-plugin-prettier\n</code></pre>\n<p>eslint-plugin-prettier插件会调用prettier对你的代码风格进行检查，其原理是先使用prettier对你的代码进行格式化，然后与格式化之前的代码进行对比，如果过出现了不一致，这个地方就会被prettier进行标记。</p>\n<p>接下来，我们需要在rules中添加，<code>&quot;prettier/prettier&quot;: &quot;error&quot;</code>，表示被prettier标记的地方抛出错误信息。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">//.eslintrc.js</span>\n<span class="token punctuation">{</span>\n  <span class="token string">"plugins"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"prettier"</span><span class="token punctuation">]</span><span class="token punctuation">,</span>\n  <span class="token string">"rules"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n    <span class="token string">"prettier/prettier"</span><span class="token operator">:</span> <span class="token string">"error"</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>借助ESLint的autofix功能，在保存代码的时候，自动将抛出error的地方进行fix。因为我们项目是在webpack中引入eslint-loader来启动eslint的，所以我们只要稍微修改webpack的配置，就能在启动webpack-dev-server的时候，每次保存代码同时自动对代码进行格式化。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token keyword">const</span> path <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'path\'</span><span class="token punctuation">)</span>\nmodule<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n  module<span class="token operator">:</span> <span class="token punctuation">{</span>\n    rules<span class="token operator">:</span> <span class="token punctuation">[</span>\n      <span class="token punctuation">{</span>\n        test<span class="token operator">:</span> <span class="token regex"><span class="token regex-delimiter">/</span><span class="token regex-source language-regex">\.(js|vue)$</span><span class="token regex-delimiter">/</span></span><span class="token punctuation">,</span>\n      loader<span class="token operator">:</span> <span class="token string">\'eslint-loader\'</span><span class="token punctuation">,</span>\n      enforce<span class="token operator">:</span> <span class="token string">\'pre\'</span><span class="token punctuation">,</span>\n      include<span class="token operator">:</span> <span class="token punctuation">[</span>path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>__dirname<span class="token punctuation">,</span> <span class="token string">\'src\'</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">,</span>\n      options<span class="token operator">:</span> <span class="token punctuation">{</span>\n          fix<span class="token operator">:</span> <span class="token boolean">true</span>\n      <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>如果你的eslint是直接通过cli方式启动的，那么只需要在后面加上fix即可，如：<code>eslint --fix</code>。</p>\n<h4 id="%E5%A6%82%E6%9E%9C%E4%B8%8E%E5%B7%B2%E5%AD%98%E5%9C%A8%E7%9A%84%E6%8F%92%E4%BB%B6%E5%86%B2%E7%AA%81%E6%80%8E%E4%B9%88%E5%8A%9E">如果与已存在的插件冲突怎么办<a class="anchor" href="#%E5%A6%82%E6%9E%9C%E4%B8%8E%E5%B7%B2%E5%AD%98%E5%9C%A8%E7%9A%84%E6%8F%92%E4%BB%B6%E5%86%B2%E7%AA%81%E6%80%8E%E4%B9%88%E5%8A%9E">§</a></h4>\n<pre class="language-bash"><code class="language-bash"><span class="token function">npm</span> i -D eslint-config-prettier\n</code></pre>\n<p>通过使用eslint-config-prettier配置，能够关闭一些不必要的或者是与prettier冲突的lint选项。这样我们就不会看到一些error同时出现两次。使用的时候需要确保，这个配置在extends的最后一项。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token comment">//.eslintrc.js</span>\n<span class="token punctuation">{</span>\n  <span class="token keyword">extends</span><span class="token operator">:</span> <span class="token punctuation">[</span>\n    <span class="token string">\'standard\'</span><span class="token punctuation">,</span> <span class="token comment">//使用standard做代码规范</span>\n    <span class="token string">"prettier"</span><span class="token punctuation">,</span>\n  <span class="token punctuation">]</span><span class="token punctuation">,</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这里有个<a href="https://github.com/prettier/eslint-config-prettier#special-rules">文档</a>，列出了会与prettier冲突的配置项。</p>\n<h4 id="%E5%90%8C%E6%97%B6%E4%BD%BF%E7%94%A8%E4%B8%8A%E9%9D%A2%E4%B8%A4%E9%A1%B9%E9%85%8D%E7%BD%AE">同时使用上面两项配置<a class="anchor" href="#%E5%90%8C%E6%97%B6%E4%BD%BF%E7%94%A8%E4%B8%8A%E9%9D%A2%E4%B8%A4%E9%A1%B9%E9%85%8D%E7%BD%AE">§</a></h4>\n<p>如果你同时使用了上述的两种配置，那么你可以通过如下方式，简化你的配置。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token comment">//.eslintrc.js</span>\n<span class="token punctuation">{</span>\n  <span class="token string">"extends"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"plugin:prettier/recommended"</span><span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>最后贴一下我们项目中的完整配置，是在vue-cli生成的代码基础上修改的，并且使用standard做代码规范：</p>\n<pre class="language-javascript"><code class="language-javascript">module<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n  root<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>\n  parserOptions<span class="token operator">:</span> <span class="token punctuation">{</span>\n    parser<span class="token operator">:</span> <span class="token string">\'babel-eslint\'</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  env<span class="token operator">:</span> <span class="token punctuation">{</span>\n    browser<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>\n    es6<span class="token operator">:</span> <span class="token boolean">true</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token keyword">extends</span><span class="token operator">:</span> <span class="token punctuation">[</span>\n    <span class="token comment">// <a class="token url-link" href="https://github.com/standard/standard/blob/master/docs/RULES-en.md">https://github.com/standard/standard/blob/master/docs/RULES-en.md</a></span>\n    <span class="token string">\'standard\'</span><span class="token punctuation">,</span>\n    <span class="token comment">// <a class="token url-link" href="https://github.com/vuejs/eslint-plugin-vue#priority-a-essential-error-prevention">https://github.com/vuejs/eslint-plugin-vue#priority-a-essential-error-prevention</a></span>\n    <span class="token comment">// consider switching to `plugin:vue/strongly-recommended` or `plugin:vue/recommended` for stricter rules.</span>\n    <span class="token string">\'plugin:vue/essential\'</span><span class="token punctuation">,</span>\n    <span class="token string">"plugin:prettier/recommended"</span><span class="token punctuation">,</span>\n  <span class="token punctuation">]</span><span class="token punctuation">,</span>\n  <span class="token comment">// required to lint *.vue files</span>\n  plugins<span class="token operator">:</span> <span class="token punctuation">[</span>\n    <span class="token string">\'vue\'</span>\n  <span class="token punctuation">]</span><span class="token punctuation">,</span>\n  <span class="token comment">// add your custom rules here</span>\n  rules<span class="token operator">:</span> <span class="token punctuation">{</span>\n    <span class="token string">"prettier/prettier"</span><span class="token operator">:</span> <span class="token string">"error"</span><span class="token punctuation">,</span>\n    <span class="token comment">// allow async-await</span>\n    <span class="token string">\'generator-star-spacing\'</span><span class="token operator">:</span> <span class="token string">\'off\'</span><span class="token punctuation">,</span>\n    <span class="token comment">// allow debugger during development</span>\n    <span class="token string">\'no-debugger\'</span><span class="token operator">:</span> process<span class="token punctuation">.</span><span class="token property-access">env</span><span class="token punctuation">.</span><span class="token constant">NODE_ENV</span> <span class="token operator">===</span> <span class="token string">\'production\'</span> <span class="token operator">?</span> <span class="token string">\'error\'</span> <span class="token operator">:</span> <span class="token string">\'off\'</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n\n</code></pre>\n<h4 id="%E4%BB%80%E4%B9%88%E4%BD%A0%E4%BB%AC%E9%A1%B9%E7%9B%AE%E6%B2%A1%E6%9C%89%E5%90%AF%E7%94%A8eslint">什么？你们项目没有启用ESLint<a class="anchor" href="#%E4%BB%80%E4%B9%88%E4%BD%A0%E4%BB%AC%E9%A1%B9%E7%9B%AE%E6%B2%A1%E6%9C%89%E5%90%AF%E7%94%A8eslint">§</a></h4>\n<p>不要慌，没有ESLint也不要怕，可以通过<a href="https://www.npmjs.com/package/onchange">onchange</a>进行代码的监听，然后自动格式化代码。只要在package.json的scripts下添加如下代码，然后使用<code>npm run format</code>，我们就能监听src目录下所有的js文件并进行格式化：</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token string">"scripts"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n  <span class="token string">"format"</span><span class="token operator">:</span> <span class="token string">"onchange \'src/**/*.js\' -- prettier --write {{changed}}"</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>当你想格式化的文件不止js文件时，也可以添加多个文件列表。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token string">"scripts"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n  <span class="token string">"format"</span><span class="token operator">:</span> <span class="token string">"onchange \'test/**/*.js\' \'src/**/*.js\' \'src/**/*.vue\' -- prettier --write {{changed}}"</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>当然，你也能够在编辑器中配置对prettier的支持，具体支持哪些编辑器，请戳<a href="https://prettier.io/docs/en/editors.html">这里</a></p>\n<h2 id="%E5%A6%82%E4%BD%95%E5%AF%B9prettier%E8%BF%9B%E8%A1%8C%E9%85%8D%E7%BD%AE">如何对Prettier进行配置<a class="anchor" href="#%E5%A6%82%E4%BD%95%E5%AF%B9prettier%E8%BF%9B%E8%A1%8C%E9%85%8D%E7%BD%AE">§</a></h2>\n<p>一共有三种方式支持对Prettier进行配置：</p>\n<ol>\n<li>根目录创建<code>.prettierrc </code>文件，能够写入YML、JSON的配置格式，并且支持<code>.yaml/.yml/.json/.js</code>后缀；</li>\n<li>根目录创建<code>.prettier.config.js </code>文件，并对外export一个对象；</li>\n<li>在<code>package.json</code>中新建<code>prettier</code>属性。</li>\n</ol>\n<p>下面我们使用<code>prettierrc.js</code>的方式对prettier进行配置，同时讲解下各个配置的作用。</p>\n<pre class="language-javascript"><code class="language-javascript">module<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n  <span class="token string">"printWidth"</span><span class="token operator">:</span> <span class="token number">80</span><span class="token punctuation">,</span> <span class="token comment">//一行的字符数，如果超过会进行换行，默认为80</span>\n  <span class="token string">"tabWidth"</span><span class="token operator">:</span> <span class="token number">2</span><span class="token punctuation">,</span> <span class="token comment">//一个tab代表几个空格数，默认为80</span>\n  <span class="token string">"useTabs"</span><span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span> <span class="token comment">//是否使用tab进行缩进，默认为false，表示用空格进行缩减</span>\n  <span class="token string">"singleQuote"</span><span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span> <span class="token comment">//字符串是否使用单引号，默认为false，使用双引号</span>\n  <span class="token string">"semi"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span> <span class="token comment">//行位是否使用分号，默认为true</span>\n  <span class="token string">"trailingComma"</span><span class="token operator">:</span> <span class="token string">"none"</span><span class="token punctuation">,</span> <span class="token comment">//是否使用尾逗号，有三个可选值"&lt;none|es5|all>"</span>\n  <span class="token string">"bracketSpacing"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span> <span class="token comment">//对象大括号直接是否有空格，默认为true，效果：{ foo: bar }</span>\n  <span class="token string">"parser"</span><span class="token operator">:</span> <span class="token string">"babylon"</span> <span class="token comment">//代码的解析引擎，默认为babylon，与babel相同。</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>配置大概列出了这些，还有一些其他配置可以在<a href="https://prettier.io/docs/en/options.html">官方文档</a>进行查阅。</p>\n<p>注意一点，parser的配置项官网列出了如下可选项：</p>\n<ul>\n<li>babylon</li>\n<li>flow</li>\n<li>typescript Since v1.4.0</li>\n<li>postcss Since v1.4.0</li>\n<li>json Since v1.5.0</li>\n<li>graphql Since v1.5.0</li>\n<li>markdown Since v1.8.0</li>\n</ul>\n<p>但是如果你使用了vue的单文件组件形式，记得将<code>parser</code>配置为vue，目前官方文档没有列出来。当然如果你自己写过AST的解析器，也可以用你自己的写的<code>parser: require(&quot;./my-parser&quot;)</code>。</p>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>有了prettier我们再也不用羡慕隔壁写golang的同事，保存后就能自动format，也不用为了项目代码不统一和同事争论得面红耳赤，因为我们统一使用prettier的风格。可能刚开始有些地方你看不惯，不过不要紧，想想这么做都是为了团队和睦，世界和平，我们做出的牺牲都是必要的。而且prettier的样式风格已经在很多大型开源项目中被采用，比如react、webpack、babel。</p>\n<p><img src="https://file.shenfq.com/18-6-18/78377904.jpg" alt="他们都在用"></p>\n<p>你看，他们都在用了，你还在等什么，想变成异教徒被烧死吗，还不快行动起来。更多精彩内容请看<a href="https://prettier.io/">官方链接</a></p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -36,7 +35,7 @@ export default {
         "张家喜"
     ],
     'date': "2018/06/18",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "正文之前，先看个段子放松一下： 去死吧！你这个异教徒！ 想起自己刚入行的时候，从svn上把代码checkout下来，看到同事写的代码，大括号居然换行了。心中暗骂，这个人是不是个**，大括号为什么要换行？年轻气盛的我，居然满腔怒...",
     'cover': "https://file.shenfq.com/18-6-18/90739745.jpg",
     'thumbnail': "//file.shenfq.com/18-8-16/16853165.jpg",
@@ -56,7 +55,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -76,7 +75,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -99,7 +98,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -121,7 +120,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -141,7 +140,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -161,7 +160,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -182,7 +181,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -202,7 +201,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -223,7 +222,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -243,7 +242,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -264,7 +263,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -284,7 +283,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -305,7 +304,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -328,7 +327,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -348,7 +347,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -368,7 +367,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -391,7 +390,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -412,7 +411,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -434,7 +433,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -456,7 +455,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -477,7 +476,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -498,7 +497,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -520,7 +519,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -542,7 +541,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -563,7 +562,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -584,7 +583,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -605,7 +604,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -626,7 +625,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -647,7 +646,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -668,7 +667,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -690,7 +689,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -713,7 +712,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -734,7 +733,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -756,7 +755,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -775,7 +774,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -797,7 +796,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -818,7 +817,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -840,7 +839,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -860,7 +859,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -881,7 +880,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -904,7 +903,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -928,7 +927,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -951,7 +950,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -970,7 +969,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -989,7 +988,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1013,7 +1012,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1034,7 +1033,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1057,7 +1056,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1078,7 +1077,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1098,7 +1097,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1120,7 +1119,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1141,7 +1140,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1162,7 +1161,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1185,7 +1184,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1207,7 +1206,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1228,7 +1227,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1248,7 +1247,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1269,7 +1268,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1290,7 +1289,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1311,7 +1310,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1333,7 +1332,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1353,7 +1352,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1373,7 +1372,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1394,7 +1393,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1415,7 +1414,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1435,7 +1434,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1456,7 +1455,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1477,7 +1476,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1498,7 +1497,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

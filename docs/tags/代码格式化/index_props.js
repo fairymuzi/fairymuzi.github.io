@@ -19,7 +19,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -42,7 +42,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

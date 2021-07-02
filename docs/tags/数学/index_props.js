@@ -19,7 +19,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -41,7 +41,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

@@ -9,7 +9,6 @@ export default {
             __html: '<h1>介绍两种 CSS 方法论</h1>\n<h2 id="%E5%89%8D%E8%A8%80">前言<a class="anchor" href="#%E5%89%8D%E8%A8%80">§</a></h2>\n<p>说起 CSS 命名规范，大家应该都很熟悉，或者应该听说过 <a href="https://en.bem.info/"><code>BEM</code></a> 。BEM 是由 Yandex 团队提出的一种 CSS Class 命名方法，旨在帮助开发人员创建更好的且结构一致的 CSS 模块。</p>\n<p>BEM 将页面的类名分为<code>块（Block）</code>、<code>元素（Element）</code>、<code>修饰符（Modifier）</code>。</p>\n<ul>\n<li>块（Block）：一个块是视觉上或者语义上的一个整体，它是一个具体且唯一的一个元素，例如，页面上的一个弹窗，或者是一个搜索框；</li>\n<li>元素（Element）：一般认为是块的组成部分，元素比较用它父级的块名称做为前缀，例如，弹窗的标题、关闭按钮、确认按钮；</li>\n<li>修饰符（Modifier）：修饰符表示一个具体元素的特定状态，例如，关闭按钮在鼠标没放上去和放上去的时候，呈现的两种状态。</li>\n</ul>\n<p>现在用 Bootstrap 的弹窗组件，举一个更加具体的例子：</p>\n<p><img src="https://file.shenfq.com/pic/20210103214204.png" alt=""></p>\n<p>鼠标放上去和没放上去的状态是有区别的。</p>\n<p><img src="https://file.shenfq.com/pic/20210103214329.png" alt=""></p>\n<p>通过上面的示例可以看出，块与元素是通过<code>两个下划线（__）</code>连接的，而元素和修饰符之间是通过<code>两个短横线（--）</code>连接的。</p>\n<p>当然，今天的文章不会着重介绍什么是 BEM，如果你之前没接触过 BEM 可以尝试去了解一下，并且多在在项目中试用几次，感受他的魅力。另外，现在网上已经有非常多的文章在介绍 BEM 了，耐心找，肯定能找到优秀的教程的。今天的文章会分享比较少人介绍的两种 CSS 方法论：SUIT CSS 和 SMACSS。</p>\n<h2 id="suit-css">SUIT CSS<a class="anchor" href="#suit-css">§</a></h2>\n<blockquote>\n<p>官方文档：SUIT CSS命名约定(<a href="https://github.com/suitcss/suit/blob/master/doc/naming-conventions.md">https://github.com/suitcss/suit/blob/master/doc/naming-conventions.md</a>)</p>\n</blockquote>\n<p>SUIT CSS是一种基于组件开发的 CSS 的方法论，它将类名分为两种类型：<code>工具类</code>和<code>组件类</code>。</p>\n<h3 id="%E5%B7%A5%E5%85%B7%E7%B1%BB">工具类<a class="anchor" href="#%E5%B7%A5%E5%85%B7%E7%B1%BB">§</a></h3>\n<p>CSS 中有很多固定工具类，比如：左右浮动、文本截断、垂直居中……。工具类的作用是帮助程序减少一些重复代码，并提供一致的实现。</p>\n<p><strong>命名规则：</strong><code>u-[sm-|md-|lg-]&lt;工具类名&gt;</code>。工具类使用 <code>u-</code> 打头，后面接类名（类名使用驼峰的方式命名），中间可以加上 <code>sm</code>、<code>md</code>、<code>lg</code> 这种响应式的规则。</p>\n<p><strong>举个栗子：</strong></p>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>u-cf<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n  <span class="token comment">&lt;!-- 左浮动 --></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>a</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>u-floatLeft<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span><a class="token url-link" href="https://blog.shenfq.com/">https://blog.shenfq.com/</a><span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n    👉看看我的博客\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>a</span><span class="token punctuation">></span></span>\n  <span class="token comment">&lt;!-- 文本截断，最大宽度200px --></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>u-textBreak u-maxWidth200<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n    爱折腾的前端工程师，欢迎关注我的公众号「更了不起的前端」\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n</code></pre>\n<h3 id="%E7%BB%84%E4%BB%B6%E7%B1%BB">组件类<a class="anchor" href="#%E7%BB%84%E4%BB%B6%E7%B1%BB">§</a></h3>\n<p>组件类用来描述一个个具体的组件，组件是构成一个具体应用程序的基石，所以组件的设计特别重要。</p>\n<p><strong>命名规则：</strong><code>[&lt;命名空间&gt;-]&lt;组件名&gt;[-后代名][--修饰符]</code>，这样的命名方式，在编写 HTML 和 CSS 的时候有几个好处：</p>\n<ul>\n<li>有助于区分组件的根元素，后代元素，以及用来修饰的类；</li>\n<li>降级类名重复的几率；</li>\n<li>能够让类名更具有语义化；</li>\n</ul>\n<p>下面来看看命名规则的各个部分的具体作用：</p>\n<h4 id="%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E5%8F%AF%E9%80%89">命名空间（可选）<a class="anchor" href="#%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E5%8F%AF%E9%80%89">§</a></h4>\n<p>命名空间是可选的，如果你希望避免自己定义的组件类名与引入的第三方样式类名发生冲突，则可以为自己的类名加上命名空间。但是，如果你们业务中不存在第三方的样式，则可以不带命名空间。</p>\n<pre class="language-css"><code class="language-css"><span class="token selector"><span class="token class">.sfq-Modal</span></span><span class="token punctuation">{</span><span class="token punctuation">}</span> <span class="token comment">/* 我的弹窗组件 */</span>\n<span class="token selector"><span class="token class">.sfq-Button</span></span> <span class="token punctuation">{</span><span class="token punctuation">}</span> <span class="token comment">/* 我的按钮组件 */</span>\n</code></pre>\n<h4 id="%E7%BB%84%E4%BB%B6%E5%90%8D">组件名<a class="anchor" href="#%E7%BB%84%E4%BB%B6%E5%90%8D">§</a></h4>\n<p>组件名使用大驼峰规则（首字母大写的驼峰规则，Pascal Case）来命名，使用这种方式也可以尽可能的避免出现同名样式的冲突。</p>\n<pre class="language-css"><code class="language-css"><span class="token selector"><span class="token class">.Modal</span></span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n</code></pre>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Modal<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n  …\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n</code></pre>\n<h4 id="%E7%BB%84%E4%BB%B6%E5%90%8D-%E5%90%8E%E4%BB%A3%E5%90%8D">组件名-后代名<a class="anchor" href="#%E7%BB%84%E4%BB%B6%E5%90%8D-%E5%90%8E%E4%BB%A3%E5%90%8D">§</a></h4>\n<p>组件的后代指附加在组件上的一部分，例如，弹窗组件的标题、按钮等等。后代名称使用小驼峰规则（首字母大写的驼峰规则，Camel Case）命名。</p>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Modal<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>header</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Modal-title<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>h2</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Modal-titleName<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>欢迎关注<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>h2</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>span</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Modal-closeBtn<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>X<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>span</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>header</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Modal-content<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n    爱折腾的前端工程师，欢迎关注我的公众号「更了不起的前端」\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n</code></pre>\n<h4 id="%E7%BB%84%E4%BB%B6%E5%90%8D--%E4%BF%AE%E9%A5%B0%E7%AC%A6">组件名--修饰符<a class="anchor" href="#%E7%BB%84%E4%BB%B6%E5%90%8D--%E4%BF%AE%E9%A5%B0%E7%AC%A6">§</a></h4>\n<p>修饰符是一种表示组件特定状态的类名，修饰符名称同样使用小驼峰规则来命名，并且和组件名直接需要用<code>两个短横线（--）</code>进行连接，这与 BEM 表现一致。</p>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Button Button--default<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>点击关注「更了不起的前端」<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Button Button--primary<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>点击关注「更了不起的前端」<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">></span></span>\n</code></pre>\n<h3 id="%E5%8F%98%E9%87%8F%E5%90%8D">变量名<a class="anchor" href="#%E5%8F%98%E9%87%8F%E5%90%8D">§</a></h3>\n<p>SUIT CSS 除了定义了工具类、组件类这两种命名方式外，还有定义了 CSS 变量的命名方式。<strong>命名规则：</strong> <code>--组件名[-后代名|--修饰符]-(CSS属性|变量名)</code>。</p>\n<pre class="language-css"><code class="language-css"><span class="token selector"><span class="token pseudo-class">:root</span></span> <span class="token punctuation">{</span>\n  <span class="token comment">/* 基础按钮的背景色 */</span>\n  <span class="token variable">--Button--default-backgroundColor</span><span class="token punctuation">:</span> <span class="token hexcode color">#909399</span><span class="token punctuation">;</span>\n  <span class="token comment">/* 主要按钮的背景色 */</span>\n  <span class="token variable">--Button--primary-backgroundColor</span><span class="token punctuation">:</span> <span class="token hexcode color">#409EFF</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="suit-css-%E5%B0%8F%E7%BB%93">SUIT CSS 小结<a class="anchor" href="#suit-css-%E5%B0%8F%E7%BB%93">§</a></h3>\n<p>SUIT CSS 除了定义了工具类、组件类的命名方式外，还提供了完整的基础类，以及测试套件用来检测你的 CSS 类名是否符合规范，具体使用方法可以查看<a href="https://github.com/suitcss/suit">官方文档（https://github.com/suitcss/suit）</a>。SUIT CSS 可以说在 BEM 的基础上进行了改进，特别是去除了双下划线的设计，在观感上就比 BEM 美观了许多，而且各种名称都是通过驼峰的方式命名，省略了部分短横线，这让 SUIT CSS 的类名的长度上也会比 BEM 更加精简。</p>\n<h2 id="smacss">SMACSS<a class="anchor" href="#smacss">§</a></h2>\n<blockquote>\n<p>SMACSS 官网：<a href="http://smacss.com/">http://smacss.com/</a></p>\n</blockquote>\n<p>SMACSS （Scalable and Modular Architecture for CSS）是一套易开发，易维护的 CSS 编写的方法论，它将 CSS 规则一共分为五大类：</p>\n<ol>\n<li>Base（基础）</li>\n<li>Layout（布局）</li>\n<li>Module（模块）</li>\n<li>State（状态）</li>\n<li>Theme（主题）</li>\n</ol>\n<p>你应该能在你现有项目的样式里发现上面的五个分类，这几种类型的样式混合在一起会让你的代码显得特别复杂，如果你有意识将这些样式归类，将大大降低复杂度。除了将样式归类之外，每个类别还有一些适用的准则。</p>\n<h3 id="%E5%9F%BA%E7%A1%80%E8%A7%84%E5%88%99">基础规则<a class="anchor" href="#%E5%9F%BA%E7%A1%80%E8%A7%84%E5%88%99">§</a></h3>\n<p>基础规则作用于元素选择器，用于定义 HTML 标签的默认样式。基础样式主要用于设置标题大小，默认链接颜色，默认字体样式以及<code>body</code>背景等。</p>\n<pre class="language-css"><code class="language-css"><span class="token comment">/* 基础样式示例 */</span>\n<span class="token selector">body<span class="token punctuation">,</span> form</span> <span class="token punctuation">{</span>\n    <span class="token property">margin</span><span class="token punctuation">:</span> <span class="token number">0</span><span class="token punctuation">;</span>\n    <span class="token property">padding</span><span class="token punctuation">:</span> <span class="token number">0</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n\n<span class="token selector">a</span> <span class="token punctuation">{</span>\n    <span class="token property">color</span><span class="token punctuation">:</span> <span class="token hexcode color">#039</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n\n<span class="token selector">a<span class="token pseudo-class">:hover</span></span> <span class="token punctuation">{</span>\n    <span class="token property">color</span><span class="token punctuation">:</span> <span class="token hexcode color">#03F</span><span class="token punctuation">;</span>    \n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E5%B8%83%E5%B1%80%E8%A7%84%E5%88%99">布局规则<a class="anchor" href="#%E5%B8%83%E5%B1%80%E8%A7%84%E5%88%99">§</a></h3>\n<p>CSS 的本质上来说就是布局页面中的元素的，但是，页面各个元素也是有主次之分的。例如，头部、尾部这种大的区块就是主要组件，我们称之为布局（Layout）。而导航栏（属于头部），网站说明（属于尾部）这种区块为次要组件，我们称之为模块（Module）。</p>\n<p>下面举个具体的案例，来看看掘金的页面布局：</p>\n<p><img src="https://file.shenfq.com/pic/20210105110758.png" alt="juejin.cn"></p>\n<p>页面上有一个头部，一个导航条，一个内容区域以及一个侧边栏，这些都属于布局的部分。</p>\n<p><img src="https://file.shenfq.com/pic/20210105111358.png" alt="juejin.cn"></p>\n<p>SMACSS 中允许在布局样式中，使用 ID 选择器，有助于在 HTML 中一眼区分出节点在布局中的位置。其他的非 ID 选择器的类，需要添加 <code>l-</code> 前缀，表示这属于布局样式。</p>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">id</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>header<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">id</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>navigation<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">id</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>content<span class="token punctuation">"</span></span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>l-left<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">id</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>sidebar<span class="token punctuation">"</span></span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>l-right<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n</code></pre>\n<h3 id="%E6%A8%A1%E5%9D%97%E8%A7%84%E5%88%99">模块规则<a class="anchor" href="#%E6%A8%A1%E5%9D%97%E8%A7%84%E5%88%99">§</a></h3>\n<p>前面提到过模块，模块是相对与布局组件来说，更加松散的次要组件，这个区分确实比较模糊，所以有一些方案也取消了布局规则，将所有可重用组件都划分为模块。</p>\n<p>模块规则在官方文档没有详细的命名风格，我看了很多文章，在命名模块的时候基本都是在参考 BEM，所以这里不再单独介绍。</p>\n<h3 id="%E7%8A%B6%E6%80%81%E8%A7%84%E5%88%99">状态规则<a class="anchor" href="#%E7%8A%B6%E6%80%81%E8%A7%84%E5%88%99">§</a></h3>\n<p>状态是用来描述模块在不同状态下的外观，使用 <code>is-</code> 前缀，这有助于我们在 HTML 中区分元素的状态。</p>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>header</span> <span class="token attr-name">id</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>header<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>nav<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n    <span class="token comment">&lt;!-- 表示被选中 --></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>nav--item is-selected<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>欢迎关注<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>nav--item<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>欢迎关注<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>header</span><span class="token punctuation">></span></span>\n</code></pre>\n<p>某些状态优先级比较高，可以酌情加上 <code>!important</code>，例如用来控制元素显示或隐藏的。</p>\n<pre class="language-css"><code class="language-css"><span class="token selector"><span class="token class">.is-hide</span></span> <span class="token punctuation">{</span>\n    <span class="token property">display</span><span class="token punctuation">:</span> none <span class="token important">!important</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n<span class="token selector"><span class="token class">.is-show</span></span> <span class="token punctuation">{</span>\n    <span class="token property">display</span><span class="token punctuation">:</span> block <span class="token important">!important</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="smacss-%E5%B0%8F%E7%BB%93">SMACSS 小结<a class="anchor" href="#smacss-%E5%B0%8F%E7%BB%93">§</a></h3>\n<p>这里没有特别介绍主题规则，因为主题在当前这个时间，基本已经被 CSS 变量所替代。SMACSS 有很多的规则这里没有详细列出来，但是在关于 CSS 如何命名方面的规则其实比较少，而且它的布局规则与模块规则确实有些模糊，不太好区分。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -53,7 +52,7 @@ export default {
         "张家喜"
     ],
     'date': "2021/01/05",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "前言 说起 CSS 命名规范，大家应该都很熟悉，或者应该听说过 BEM 。BEM 是由 Yandex 团队提出的一种 CSS Class 命名方法，旨在帮助开发人员创建更好的且结构一致的 CSS 模块。 BEM 将页面的类名分为块（Block）、元素（Element...",
     'cover': "https://file.shenfq.com/pic/20210103214204.png",
     'categories': [
@@ -74,7 +73,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -94,7 +93,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -117,7 +116,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -139,7 +138,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -159,7 +158,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -179,7 +178,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -200,7 +199,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -220,7 +219,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -241,7 +240,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -261,7 +260,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -282,7 +281,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -302,7 +301,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -323,7 +322,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -346,7 +345,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -366,7 +365,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -386,7 +385,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -409,7 +408,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -430,7 +429,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -452,7 +451,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -474,7 +473,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -495,7 +494,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -516,7 +515,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -538,7 +537,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -560,7 +559,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -581,7 +580,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -602,7 +601,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -623,7 +622,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -644,7 +643,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -665,7 +664,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -686,7 +685,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -708,7 +707,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -731,7 +730,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -752,7 +751,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -774,7 +773,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -793,7 +792,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -815,7 +814,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -836,7 +835,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -858,7 +857,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -878,7 +877,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -899,7 +898,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -922,7 +921,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -946,7 +945,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -969,7 +968,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -988,7 +987,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1007,7 +1006,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1031,7 +1030,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1052,7 +1051,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1075,7 +1074,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1096,7 +1095,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1116,7 +1115,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1138,7 +1137,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1159,7 +1158,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1180,7 +1179,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1203,7 +1202,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1225,7 +1224,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1246,7 +1245,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1266,7 +1265,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1287,7 +1286,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1308,7 +1307,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1329,7 +1328,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1351,7 +1350,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1371,7 +1370,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1391,7 +1390,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1412,7 +1411,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1433,7 +1432,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1453,7 +1452,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1474,7 +1473,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1495,7 +1494,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1516,7 +1515,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

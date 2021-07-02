@@ -9,7 +9,6 @@ export default {
             __html: '<h1>小程序自动化测试</h1>\n<h2 id="%E8%83%8C%E6%99%AF">背景<a class="anchor" href="#%E8%83%8C%E6%99%AF">§</a></h2>\n<p>近期团队打算做一个小程序自动化测试的工具，期望能够做到业务人员操作一遍小程序后，自动还原之前的操作路径，并且捕获操作过程中发生的异常，以此来判断这次发布是否会影响小程序的基础功能。</p>\n<p><img src="https://file.shenfq.com/ipic/2020-08-09-072710.png" alt="方案"></p>\n<p>上述描述看似简单，但是中间还是有些难点的，第一个难点就是如何在业务人员操作小程序的时候记录操作路径，第二个难点就是如何将记录的操作路径进行还原。</p>\n<h2 id="%E8%87%AA%E5%8A%A8%E5%8C%96-sdk">自动化 SDK<a class="anchor" href="#%E8%87%AA%E5%8A%A8%E5%8C%96-sdk">§</a></h2>\n<p>如何将操作路径还原这个问题，首选官方提供的 SDK： <code>miniprogram-automator</code>。</p>\n<p>小程序自动化 <a href="http://npmjs.org/package/miniprogram-automator">SDK</a> 为开发者提供了一套通过外部脚本操控小程序的方案，从而实现小程序自动化测试的目的。通过该 SDK，你可以做到以下事情：</p>\n<ul>\n<li>控制小程序跳转到指定页面</li>\n<li>获取小程序页面数据</li>\n<li>获取小程序页面元素状态</li>\n<li>触发小程序元素绑定事件</li>\n<li>往 AppService 注入代码片段</li>\n<li>调用 wx 对象上任意接口</li>\n<li>...</li>\n</ul>\n<p>上面的描述都来自官方文档，建议阅读后面内容之前可以先看看<a href="https://developers.weixin.qq.com/miniprogram/dev/devtools/auto/">官方文档</a>，当然如果之前用过 puppeteer ，也可以快速上手，api 基本一致。下面简单介绍下 SDK 的使用方式。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 引入sdk</span>\n<span class="token keyword">const</span> automator <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'miniprogram-automator\'</span><span class="token punctuation">)</span>\n\n<span class="token comment">// 启动微信开发者工具</span>\nautomator<span class="token punctuation">.</span><span class="token method function property-access">launch</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  <span class="token comment">// 微信开发者工具安装路径下的 cli 工具</span>\n  <span class="token comment">// Windows下为安装路径下的 cli.bat</span>\n  <span class="token comment">// MacOS下为安装路径下的 cli</span>\n  cliPath<span class="token operator">:</span> <span class="token string">\'path/to/cli\'</span><span class="token punctuation">,</span>\n  <span class="token comment">// 项目地址，即要运行的小程序的路径</span>\n  projectPath<span class="token operator">:</span> <span class="token string">\'path/to/project\'</span><span class="token punctuation">,</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">then</span><span class="token punctuation">(</span><span class="token keyword">async</span> <span class="token parameter">miniProgram</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span> <span class="token comment">// miniProgram 为 IDE 启动后的实例</span>\n  <span class="token comment">// 启动小程序里的 index 页面</span>\n  <span class="token keyword">const</span> page <span class="token operator">=</span> <span class="token keyword control-flow">await</span> miniProgram<span class="token punctuation">.</span><span class="token method function property-access">reLaunch</span><span class="token punctuation">(</span><span class="token string">\'/page/index/index\'</span><span class="token punctuation">)</span>\n  <span class="token comment">// 等待 500 ms</span>\n  <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">waitFor</span><span class="token punctuation">(</span><span class="token number">500</span><span class="token punctuation">)</span>\n  <span class="token comment">// 获取页面元素</span>\n  <span class="token keyword">const</span> element <span class="token operator">=</span> <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">$</span><span class="token punctuation">(</span><span class="token string">\'.main-btn\'</span><span class="token punctuation">)</span>\n  <span class="token comment">// 点击元素</span>\n  <span class="token keyword control-flow">await</span> element<span class="token punctuation">.</span><span class="token method function property-access">tap</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token comment">// 关闭 IDE</span>\n  <span class="token keyword control-flow">await</span> miniProgram<span class="token punctuation">.</span><span class="token method function property-access">close</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>有个地方需要提醒一下：使用 SDK 之前需要开启开发者工具的服务端口，要不然会启动失败。</p>\n<p><img src="https://file.shenfq.com/ipic/2020-08-09-071816.png" alt="开启服务端口"></p>\n<h2 id="%E6%8D%95%E8%8E%B7%E7%94%A8%E6%88%B7%E8%A1%8C%E4%B8%BA">捕获用户行为<a class="anchor" href="#%E6%8D%95%E8%8E%B7%E7%94%A8%E6%88%B7%E8%A1%8C%E4%B8%BA">§</a></h2>\n<p>有了还原操作路径的办法，接下来就要解决记录操作路径的难题了。</p>\n<p>在小程序中，并不能像 web 中通过事件冒泡的方式在 window 中捕获所有的事件，好在小程序所以的页面和组件都必须通过 <code>Page</code> 、<code>Component</code> 方法来包装，所以我们可以改写这两个方法，拦截传入的方法，并判断第一个参数是否为 <code>event</code> 对象，以此来捕获所有的事件。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 暂存原生方法</span>\n<span class="token keyword">const</span> originPage <span class="token operator">=</span> <span class="token maybe-class-name">Page</span>\n<span class="token keyword">const</span> originComponent <span class="token operator">=</span> <span class="token maybe-class-name">Component</span>\n\n<span class="token comment">// 改写 Page</span>\n<span class="token function-variable function"><span class="token maybe-class-name">Page</span></span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">params</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> names <span class="token operator">=</span> <span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token method function property-access">keys</span><span class="token punctuation">(</span>params<span class="token punctuation">)</span>\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">const</span> name <span class="token keyword">of</span> names<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 进行方法拦截</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token keyword">typeof</span> obj<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">===</span> <span class="token string">\'function\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      params<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">hookMethod</span><span class="token punctuation">(</span>name<span class="token punctuation">,</span> params<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token boolean">false</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">originPage</span><span class="token punctuation">(</span>params<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n<span class="token comment">// 改写 Component</span>\n<span class="token function-variable function"><span class="token maybe-class-name">Component</span></span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">params</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>params<span class="token punctuation">.</span><span class="token property-access">methods</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword">const</span> <span class="token punctuation">{</span> methods <span class="token punctuation">}</span> <span class="token operator">=</span> params\n      <span class="token keyword">const</span> names <span class="token operator">=</span> <span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token method function property-access">keys</span><span class="token punctuation">(</span>methods<span class="token punctuation">)</span>\n      <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">const</span> name <span class="token keyword">of</span> names<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token comment">// 进行方法拦截</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token keyword">typeof</span> methods<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">===</span> <span class="token string">\'function\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          methods<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">hookMethod</span><span class="token punctuation">(</span>name<span class="token punctuation">,</span> methods<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token boolean">true</span><span class="token punctuation">)</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">originComponent</span><span class="token punctuation">(</span>params<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">const</span> <span class="token function-variable function">hookMethod</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">name<span class="token punctuation">,</span> method<span class="token punctuation">,</span> isComponent</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter"><span class="token spread operator">...</span>args</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> <span class="token punctuation">[</span>evt<span class="token punctuation">]</span> <span class="token operator">=</span> args <span class="token comment">// 取出第一个参数</span>\n    <span class="token comment">// 判断是否为 event 对象</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>evt <span class="token operator">&amp;&amp;</span> evt<span class="token punctuation">.</span><span class="token property-access">target</span> <span class="token operator">&amp;&amp;</span> evt<span class="token punctuation">.</span><span class="token property-access">type</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 记录用户行为</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">return</span> method<span class="token punctuation">.</span><span class="token method function property-access">apply</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">,</span> args<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这里的代码只是代理了所有的事件方法，并不能用来还原用户的行为，要还原用户行为还必须知道该事件类型是否是需要的，比如点击、长按、输入。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> evtTypes <span class="token operator">=</span> <span class="token punctuation">[</span>\n    <span class="token string">\'tap\'</span><span class="token punctuation">,</span> <span class="token comment">// 点击</span>\n    <span class="token string">\'input\'</span><span class="token punctuation">,</span> <span class="token comment">// 输入</span>\n    <span class="token string">\'confirm\'</span><span class="token punctuation">,</span> <span class="token comment">// 回车</span>\n    <span class="token string">\'longpress\'</span> <span class="token comment">// 长按</span>\n<span class="token punctuation">]</span>\n<span class="token keyword">const</span> <span class="token function-variable function">hookMethod</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">name<span class="token punctuation">,</span> method</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter"><span class="token spread operator">...</span>args</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> <span class="token punctuation">[</span>evt<span class="token punctuation">]</span> <span class="token operator">=</span> args <span class="token comment">// 取出第一个参数</span>\n    <span class="token comment">// 判断是否为 event 对象</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>\n      evt <span class="token operator">&amp;&amp;</span> evt<span class="token punctuation">.</span><span class="token property-access">target</span> <span class="token operator">&amp;&amp;</span> evt<span class="token punctuation">.</span><span class="token property-access">type</span> <span class="token operator">&amp;&amp;</span>\n      evtTypes<span class="token punctuation">.</span><span class="token method function property-access">includes</span><span class="token punctuation">(</span>evt<span class="token punctuation">.</span><span class="token property-access">type</span><span class="token punctuation">)</span> <span class="token comment">// 判断事件类型</span>\n    <span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 记录用户行为</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">return</span> method<span class="token punctuation">.</span><span class="token method function property-access">apply</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">,</span> args<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>确定事件类型之后，还需要明确点击的元素到底是哪个，但是小程序里面比较坑的地方就是，event 对象的 target 属性中，并没有元素的类名，但是可以获取元素的 dataset。</p>\n<p><img src="https://file.shenfq.com/ipic/2020-08-09-080857.png" alt="event对象"></p>\n<p>为了准确的获取元素，我们需要在构建中增加一个步骤，修改 wxml 文件，将所有元素的 <code>class</code> 属性复制一份到 <code>data-className</code> 中。</p>\n<pre class="language-html"><code class="language-html"><span class="token comment">&lt;!-- 构建前 --></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>view</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>close-btn<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>view</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>view</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>{{mainClassName}}<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>view</span><span class="token punctuation">></span></span>\n<span class="token comment">&lt;!-- 构建后 --></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>view</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>close-btn<span class="token punctuation">"</span></span> <span class="token attr-name">data-className</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>close-btn<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>view</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>view</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>{{mainClassName}}<span class="token punctuation">"</span></span> <span class="token attr-name">data-className</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>{{mainClassName}}<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>view</span><span class="token punctuation">></span></span>\n</code></pre>\n<p>但是获取到 class 之后，又会有另一个坑，小程序的自动化测试工具并不能直接获取页面里自定义组件中的元素，必须先获取自定义组件。</p>\n<pre class="language-html"><code class="language-html"><span class="token comment">&lt;!-- Page --></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>toast</span> <span class="token attr-name">text</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>loading<span class="token punctuation">"</span></span> <span class="token attr-name">show</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>{{showToast}}<span class="token punctuation">"</span></span> <span class="token punctuation">/></span></span>\n<span class="token comment">&lt;!-- Component --></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>view</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>toast<span class="token punctuation">"</span></span> <span class="token attr-name"><span class="token namespace">wx:</span>if</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>{{show}}<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>text</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>toast-text<span class="token punctuation">"</span></span><span class="token punctuation">></span></span>{{text}}<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>text</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>view</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>toast-close<span class="token punctuation">"</span></span> <span class="token punctuation">/></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>view</span><span class="token punctuation">></span></span>\n</code></pre>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 如果直接查找 .toast-close 会得到 null</span>\n<span class="token keyword">const</span> element <span class="token operator">=</span> <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">$</span><span class="token punctuation">(</span><span class="token string">\'.toast-close\'</span><span class="token punctuation">)</span>\nelement<span class="token punctuation">.</span><span class="token method function property-access">tap</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">// Error!</span>\n\n<span class="token comment">// 必须先通过自定义组件的 tagName 找到自定义组件</span>\n<span class="token comment">// 再从自定义组件中通过 className 查找对应元素</span>\n<span class="token keyword">const</span> element <span class="token operator">=</span> <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">$</span><span class="token punctuation">(</span><span class="token string">\'toast .toast-close\'</span><span class="token punctuation">)</span>\nelement<span class="token punctuation">.</span><span class="token method function property-access">tap</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n</code></pre>\n<p>所以我们在构建操作的时候，还需要为元素插入 tagName。</p>\n<pre class="language-html"><code class="language-html"><span class="token comment">&lt;!-- 构建前 --></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>view</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>close-btn<span class="token punctuation">"</span></span> <span class="token punctuation">/></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>toast</span> <span class="token attr-name">text</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>loading<span class="token punctuation">"</span></span> <span class="token attr-name">show</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>{{showToast}}<span class="token punctuation">"</span></span> <span class="token punctuation">/></span></span>\n<span class="token comment">&lt;!-- 构建后 --></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>view</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>close-btn<span class="token punctuation">"</span></span> <span class="token attr-name">data-className</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>close-btn<span class="token punctuation">"</span></span> <span class="token attr-name">data-tagName</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>view<span class="token punctuation">"</span></span> <span class="token punctuation">/></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>toast</span> <span class="token attr-name">text</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>loading<span class="token punctuation">"</span></span> <span class="token attr-name">show</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>{{showToast}}<span class="token punctuation">"</span></span> <span class="token attr-name">data-tagName</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>toast<span class="token punctuation">"</span></span> <span class="token punctuation">/></span></span>\n</code></pre>\n<p>现在我们可以继续愉快的记录用户行为了。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 记录用户行为的数组</span>\n<span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">;</span>\n<span class="token comment">// 添加用户行为</span>\n<span class="token keyword">const</span> addAction <span class="token operator">=</span> <span class="token punctuation">(</span>type<span class="token punctuation">,</span> query<span class="token punctuation">,</span> value <span class="token operator">=</span> <span class="token string">\'\'</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  actions<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n    time<span class="token operator">:</span> <span class="token known-class-name class-name">Date</span><span class="token punctuation">.</span><span class="token method function property-access">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>\n    type<span class="token punctuation">,</span>\n    query<span class="token punctuation">,</span>\n    value\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token comment">// 代理事件方法</span>\n<span class="token keyword">const</span> <span class="token function-variable function">hookMethod</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">name<span class="token punctuation">,</span> method<span class="token punctuation">,</span> isComponent</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter"><span class="token spread operator">...</span>args</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> <span class="token punctuation">[</span>evt<span class="token punctuation">]</span> <span class="token operator">=</span> args <span class="token comment">// 取出第一个参数</span>\n    <span class="token comment">// 判断是否为 event 对象</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>\n      evt <span class="token operator">&amp;&amp;</span> evt<span class="token punctuation">.</span><span class="token property-access">target</span> <span class="token operator">&amp;&amp;</span> evt<span class="token punctuation">.</span><span class="token property-access">type</span> <span class="token operator">&amp;&amp;</span>\n      evtTypes<span class="token punctuation">.</span><span class="token method function property-access">includes</span><span class="token punctuation">(</span>evt<span class="token punctuation">.</span><span class="token property-access">type</span><span class="token punctuation">)</span> <span class="token comment">// 判断事件类型</span>\n    <span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword">const</span> <span class="token punctuation">{</span> type<span class="token punctuation">,</span> target<span class="token punctuation">,</span> detail <span class="token punctuation">}</span> <span class="token operator">=</span> evt\n      <span class="token keyword">const</span> <span class="token punctuation">{</span> id<span class="token punctuation">,</span> dataset <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span> <span class="token punctuation">}</span> <span class="token operator">=</span> target\n      <span class="token keyword">const</span> <span class="token punctuation">{</span> className <span class="token operator">=</span> <span class="token string">\'\'</span> <span class="token punctuation">}</span> <span class="token operator">=</span> dataset\n      <span class="token keyword">const</span> <span class="token punctuation">{</span> value <span class="token operator">=</span> <span class="token string">\'\'</span> <span class="token punctuation">}</span> <span class="token operator">=</span> detail <span class="token comment">// input事件触发时，输入框的值</span>\n      <span class="token comment">// 记录用户行为</span>\n      <span class="token keyword">let</span> query <span class="token operator">=</span> <span class="token string">\'\'</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>isComponent<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token comment">// 如果是组件内的方法，需要获取当前组件的 tagName</span>\n        query <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">dataset</span><span class="token punctuation">.</span><span class="token property-access">tagName</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> </span><span class="token template-punctuation string">`</span></span>\n      <span class="token punctuation">}</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>id<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token comment">// id 存在，则直接通过 id 查找元素</span>\n        query <span class="token operator">+=</span> id\n      <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n        <span class="token comment">// id 不存在，才通过 className 查找元素</span>\n        query <span class="token operator">+=</span> className\n      <span class="token punctuation">}</span>\n      <span class="token function">addAction</span><span class="token punctuation">(</span>type<span class="token punctuation">,</span> query<span class="token punctuation">,</span> value<span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">return</span> method<span class="token punctuation">.</span><span class="token method function property-access">apply</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">,</span> args<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>到这里已经记录了用户所有的点击、输入、回车相关的操作。但是还有滚动屏幕的操作没有记录，我们可以直接代理 Page 的 <code>onPageScroll</code> 方法。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 记录用户行为的数组</span>\n<span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">;</span>\n<span class="token comment">// 添加用户行为</span>\n<span class="token keyword">const</span> addAction <span class="token operator">=</span> <span class="token punctuation">(</span>type<span class="token punctuation">,</span> query<span class="token punctuation">,</span> value <span class="token operator">=</span> <span class="token string">\'\'</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>type <span class="token operator">===</span> <span class="token string">\'scroll\'</span> <span class="token operator">||</span> type <span class="token operator">===</span> <span class="token string">\'input\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 如果上一次行为也是滚动或输入，则重置 value 即可</span>\n    <span class="token keyword">const</span> last <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">actions</span><span class="token punctuation">[</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">actions</span><span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">-</span> <span class="token number">1</span><span class="token punctuation">]</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>last <span class="token operator">&amp;&amp;</span> last<span class="token punctuation">.</span><span class="token property-access">type</span> <span class="token operator">===</span> type<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      last<span class="token punctuation">.</span><span class="token property-access">value</span> <span class="token operator">=</span> value\n      last<span class="token punctuation">.</span><span class="token property-access">time</span> <span class="token operator">=</span> <span class="token known-class-name class-name">Date</span><span class="token punctuation">.</span><span class="token method function property-access">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n      <span class="token keyword control-flow">return</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  actions<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n    time<span class="token operator">:</span> <span class="token known-class-name class-name">Date</span><span class="token punctuation">.</span><span class="token method function property-access">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>\n    type<span class="token punctuation">,</span>\n    query<span class="token punctuation">,</span>\n    value\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token function-variable function"><span class="token maybe-class-name">Page</span></span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">params</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> names <span class="token operator">=</span> <span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token method function property-access">keys</span><span class="token punctuation">(</span>params<span class="token punctuation">)</span>\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">const</span> name <span class="token keyword">of</span> names<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 进行方法拦截</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token keyword">typeof</span> obj<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">===</span> <span class="token string">\'function\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      params<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">hookMethod</span><span class="token punctuation">(</span>name<span class="token punctuation">,</span> params<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token boolean">false</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  <span class="token keyword">const</span> <span class="token punctuation">{</span> onPageScroll <span class="token punctuation">}</span> <span class="token operator">=</span> params\n  <span class="token comment">// 拦截滚动事件</span>\n  params<span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">onPageScroll</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token spread operator">...</span>args</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> <span class="token punctuation">[</span>evt<span class="token punctuation">]</span> <span class="token operator">=</span> args\n    <span class="token keyword">const</span> <span class="token punctuation">{</span> scrollTop <span class="token punctuation">}</span> <span class="token operator">=</span> evt\n    <span class="token function">addAction</span><span class="token punctuation">(</span><span class="token string">\'scroll\'</span><span class="token punctuation">,</span> <span class="token string">\'\'</span><span class="token punctuation">,</span> scrollTop<span class="token punctuation">)</span>\n    onPageScroll<span class="token punctuation">.</span><span class="token method function property-access">apply</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">,</span> args<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">originPage</span><span class="token punctuation">(</span>params<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这里有个优化点，就是滚动操作记录的时候，可以判断一下上次操作是否也为滚动操作，如果是同一个操作，则只需要修改一下滚动距离即可，因为两次滚动可以一步到位。同理，输入事件也是，输入的值也可以一步到位。</p>\n<h2 id="%E8%BF%98%E5%8E%9F%E7%94%A8%E6%88%B7%E8%A1%8C%E4%B8%BA">还原用户行为<a class="anchor" href="#%E8%BF%98%E5%8E%9F%E7%94%A8%E6%88%B7%E8%A1%8C%E4%B8%BA">§</a></h2>\n<p>用户操作完毕后，可以在控制台输出用户行为的 json 文本，把 json 文本复制出来后，就可以通过自动化工具运行了。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 引入sdk</span>\n<span class="token keyword">const</span> automator <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'miniprogram-automator\'</span><span class="token punctuation">)</span>\n\n<span class="token comment">// 用户操作行为</span>\n<span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">[</span>\n  <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'tap\'</span><span class="token punctuation">,</span> query<span class="token operator">:</span> <span class="token string">\'goods .title\'</span><span class="token punctuation">,</span> value<span class="token operator">:</span> <span class="token string">\'\'</span><span class="token punctuation">,</span> time<span class="token operator">:</span> <span class="token number">1596965650000</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'scroll\'</span><span class="token punctuation">,</span> query<span class="token operator">:</span> <span class="token string">\'\'</span><span class="token punctuation">,</span> value<span class="token operator">:</span> <span class="token number">560</span><span class="token punctuation">,</span> time<span class="token operator">:</span> <span class="token number">1596965710680</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">\'tap\'</span><span class="token punctuation">,</span> query<span class="token operator">:</span> <span class="token string">\'gotoTop\'</span><span class="token punctuation">,</span> value<span class="token operator">:</span> <span class="token string">\'\'</span><span class="token punctuation">,</span> time<span class="token operator">:</span> <span class="token number">1596965770000</span> <span class="token punctuation">}</span>\n<span class="token punctuation">]</span>\n\n<span class="token comment">// 启动微信开发者工具</span>\nautomator<span class="token punctuation">.</span><span class="token method function property-access">launch</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  projectPath<span class="token operator">:</span> <span class="token string">\'path/to/project\'</span><span class="token punctuation">,</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">then</span><span class="token punctuation">(</span><span class="token keyword">async</span> <span class="token parameter">miniProgram</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword">let</span> page <span class="token operator">=</span> <span class="token keyword control-flow">await</span> miniProgram<span class="token punctuation">.</span><span class="token method function property-access">reLaunch</span><span class="token punctuation">(</span><span class="token string">\'/page/index/index\'</span><span class="token punctuation">)</span>\n  \n  <span class="token keyword">let</span> prevTime\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">const</span> action <span class="token keyword">of</span> actions<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> <span class="token punctuation">{</span> type<span class="token punctuation">,</span> query<span class="token punctuation">,</span> value<span class="token punctuation">,</span> time <span class="token punctuation">}</span> <span class="token operator">=</span> action\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>prevTime<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 计算两次操作之间的等待时间</span>\n      <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">waitFor</span><span class="token punctuation">(</span>time <span class="token operator">-</span> prevTime<span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n    <span class="token comment">// 重置上次操作时间</span>\n    prevTime <span class="token operator">=</span> time\n    \n    <span class="token comment">// 获取当前页面实例</span>\n    page <span class="token operator">=</span> <span class="token keyword control-flow">await</span> miniProgram<span class="token punctuation">.</span><span class="token method function property-access">currentPage</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">switch</span> <span class="token punctuation">(</span>type<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword">case</span> <span class="token string">\'tap\'</span><span class="token operator">:</span>\n        <span class="token keyword">const</span> element <span class="token operator">=</span> <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">$</span><span class="token punctuation">(</span>query<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">await</span> element<span class="token punctuation">.</span><span class="token method function property-access">tap</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n        <span class="token keyword control-flow">break</span><span class="token punctuation">;</span>\n      <span class="token keyword">case</span> <span class="token string">\'input\'</span><span class="token operator">:</span>\n        <span class="token keyword">const</span> element <span class="token operator">=</span> <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">$</span><span class="token punctuation">(</span>query<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">await</span> element<span class="token punctuation">.</span><span class="token method function property-access">input</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">break</span><span class="token punctuation">;</span>\n      <span class="token keyword">case</span> <span class="token string">\'confirm\'</span><span class="token operator">:</span>\n        <span class="token keyword">const</span> element <span class="token operator">=</span> <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">$</span><span class="token punctuation">(</span>query<span class="token punctuation">)</span>\n         <span class="token keyword control-flow">await</span> element<span class="token punctuation">.</span><span class="token method function property-access">trigger</span><span class="token punctuation">(</span><span class="token string">\'confirm\'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> value <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n        <span class="token keyword control-flow">break</span><span class="token punctuation">;</span>\n      <span class="token keyword">case</span> <span class="token string">\'scroll\'</span><span class="token operator">:</span>\n        <span class="token keyword control-flow">await</span> miniProgram<span class="token punctuation">.</span><span class="token method function property-access">pageScrollTo</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">break</span><span class="token punctuation">;</span>\n    <span class="token punctuation">}</span>\n    <span class="token comment">// 每次操作结束后，等待 5s，防止页面跳转过程中，后面的操作找不到页面</span>\n    <span class="token keyword control-flow">await</span> page<span class="token punctuation">.</span><span class="token method function property-access">waitFor</span><span class="token punctuation">(</span><span class="token number">5000</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 关闭 IDE</span>\n  <span class="token keyword control-flow">await</span> miniProgram<span class="token punctuation">.</span><span class="token method function property-access">close</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>这里只是简单的还原了用户的操作行为，实际运行过程中，还会涉及到网络请求和 localstorage 的 mock，这里不再展开讲述。同时，我们还可以接入 jest 工具，更加方便用例的编写。</p>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>看似很难的需求，只要用心去发掘，总能找到对应的解决办法。另外微信小程序的自动化工具真的有很多坑，遇到问题可以先到小程序社区去找找，大部分坑都有前人踩过，还有一些一时无法解决的问题只能想其他办法来规避。最后祝愿天下无 bug。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -36,7 +35,7 @@ export default {
         "张家喜"
     ],
     'date': "2020/08/09",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "背景 近期团队打算做一个小程序自动化测试的工具，期望能够做到业务人员操作一遍小程序后，自动还原之前的操作路径，并且捕获操作过程中发生的异常，以此来判断这次发布是否会影响小程序的基础功能。 上述描述看似简单，但是中...",
     'cover': "https://file.shenfq.com/ipic/2020-08-09-072710.png",
     'categories': [
@@ -55,7 +54,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -75,7 +74,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -98,7 +97,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -120,7 +119,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -140,7 +139,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -160,7 +159,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -181,7 +180,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -201,7 +200,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -222,7 +221,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -242,7 +241,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -263,7 +262,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -283,7 +282,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -304,7 +303,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -327,7 +326,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -347,7 +346,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -367,7 +366,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -390,7 +389,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -411,7 +410,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -433,7 +432,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -455,7 +454,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -476,7 +475,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -497,7 +496,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -519,7 +518,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -541,7 +540,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -562,7 +561,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -583,7 +582,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -604,7 +603,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -625,7 +624,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -646,7 +645,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -667,7 +666,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -689,7 +688,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -712,7 +711,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -733,7 +732,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -755,7 +754,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -774,7 +773,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -796,7 +795,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -817,7 +816,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -839,7 +838,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -859,7 +858,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -880,7 +879,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -903,7 +902,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -927,7 +926,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -950,7 +949,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -969,7 +968,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -988,7 +987,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1012,7 +1011,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1033,7 +1032,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1056,7 +1055,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1077,7 +1076,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1097,7 +1096,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1119,7 +1118,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1140,7 +1139,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1161,7 +1160,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1184,7 +1183,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1206,7 +1205,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1227,7 +1226,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1247,7 +1246,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1268,7 +1267,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1289,7 +1288,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1310,7 +1309,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1332,7 +1331,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1352,7 +1351,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1372,7 +1371,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1393,7 +1392,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1414,7 +1413,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1434,7 +1433,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1455,7 +1454,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1476,7 +1475,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1497,7 +1496,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

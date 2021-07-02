@@ -5,7 +5,6 @@ export default {
     srcDir: 'blog',
     outDir: 'docs',
     plugins: ['blog'],
-    head: React.createElement("script", { src: "/assets/hm.js" }),
     blog: {
         root: '/posts/',
         author: 'shenfq',

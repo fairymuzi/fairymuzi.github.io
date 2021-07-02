@@ -9,7 +9,6 @@ export default {
             __html: '<h1>MobX 上手指南</h1>\n<p>之前用 Redux 比较多，一直听说 Mobx 能让你体验到在 React 里面写 Vue 的感觉，今天打算尝试下 Mobx 是不是真的有写 Vue 的感觉。</p>\n<h2 id="%E9%A2%98%E5%A4%96%E8%AF%9D">题外话<a class="anchor" href="#%E9%A2%98%E5%A4%96%E8%AF%9D">§</a></h2>\n<p>在介绍 MobX 的用法之前，先说点题外话，我们可以看一下 MobX 的中文简介。在 MobX 的中文网站上写着：</p>\n<blockquote>\n<p>MobX 是一个经过战火洗礼的库，它通过透明的函数响应式编程使得状态管理变得简单和可扩展。</p>\n</blockquote>\n<p><img src="https://file.shenfq.com/pic/20210118134728.png" alt="数据流"></p>\n<p>“战火洗礼的库” 怎么看都感觉很奇怪，读起来很拗口😂，而且网上很多介绍 MobX 的文章都是这么写的，在 <a href="https://github.com/mobxjs/mobx">github</a> 翻阅其 README 发现写的是：</p>\n<blockquote>\n<p>MobX is a battle tested library that makes state management simple and scalable by transparently applying functional reactive programming (TFRP).</p>\n</blockquote>\n<p>可以看到作者原本要表达的意思是 MobX 是经过了许多的测试，拥有比较强的健壮性。下面是通过谷歌翻译的结果，看起来也比中文网的表达要准确一些。</p>\n<p><img src="https://file.shenfq.com/pic/20210123154105.png" alt="谷歌翻译"></p>\n<p>虽然，我的英文水平也很菜，还是会尽量看官方的文档，这样可以避免一些不必要的误解。</p>\n<h2 id="%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8">如何使用？<a class="anchor" href="#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8">§</a></h2>\n<p>言归正传，MobX 现在的最新版是 6.0，这个版本的 API 相比于之前有了极大的简化，可以说更加好用了。之前的版本是装饰器风格的语法糖，但是装饰器在现在的 ES 规范中并不成熟，而且引入装饰器语法也在增加打包后的代码体积。综合考虑后，MobX 6.0 取消了装饰器语法的 API。</p>\n<h3 id="%E5%93%8D%E5%BA%94%E5%BC%8F%E5%AF%B9%E8%B1%A1">响应式对象<a class="anchor" href="#%E5%93%8D%E5%BA%94%E5%BC%8F%E5%AF%B9%E8%B1%A1">§</a></h3>\n<p>MobX 通过 <code>makeObservable</code> 方法来构造响应式对象，传入的对象属性会通过  <code>Proxy</code> 代理，与 Vue 类似，在 6.0 版本之前使用的是   <code>Object.defineProperty</code>  API，当然 6.0 也提供了降级方案。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> configure<span class="token punctuation">,</span> makeObservable<span class="token punctuation">,</span> observable<span class="token punctuation">,</span> action<span class="token punctuation">,</span> computed <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'mobx\'</span>\n\n<span class="token comment">// 使用该配置，可以将 Proxy 降级为 Object.defineProperty</span>\n<span class="token function">configure</span><span class="token punctuation">(</span><span class="token punctuation">{</span> useProxies<span class="token operator">:</span> <span class="token string">"never"</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n\n<span class="token comment">// 构造响应对象</span>\n<span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeObservable</span><span class="token punctuation">(</span>\n  <span class="token comment">// 需要代理的响应对象</span>\n  <span class="token punctuation">{</span>\n    count<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n    <span class="token keyword">get</span> <span class="token function">double</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">*</span> <span class="token number">2</span>\n    <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    <span class="token function">increment</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">+=</span> <span class="token number">1</span>\n    <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    <span class="token function">decrement</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">-=</span> <span class="token number">1</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token comment">// 对各个属性进行包装，用于标记该属性的作用</span>\n  <span class="token punctuation">{</span>\n    count<span class="token operator">:</span> observable<span class="token punctuation">,</span> <span class="token comment">// 需要跟踪的响应属性</span>\n    double<span class="token operator">:</span> computed<span class="token punctuation">,</span>  <span class="token comment">// 计算属性</span>\n    increment<span class="token operator">:</span> action<span class="token punctuation">,</span> <span class="token comment">// action 调用后，会修改响应对象</span>\n    decrement<span class="token operator">:</span> action<span class="token punctuation">,</span> <span class="token comment">// action 调用后，会修改响应对象</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">)</span>\n</code></pre>\n<p>我们在看看之前版本的 MobX，使用装饰器的写法：</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Store</span> <span class="token punctuation">{</span>\n  @observable count <span class="token operator">=</span> <span class="token number">0</span>\n  <span class="token function">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token function">makeObservable</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  @action <span class="token function">increment</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span><span class="token operator">++</span><span class="token punctuation">;</span>\n  <span class="token punctuation">}</span>\n  @action <span class="token function">decrement</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span><span class="token operator">--</span><span class="token punctuation">;</span>\n  <span class="token punctuation">}</span>\n  @computed <span class="token keyword">get</span> <span class="token function">double</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">*</span> <span class="token number">2</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Store</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n</code></pre>\n<p>这么看起来，好像写法并没有得到什么简化，好像比写装饰器还要复杂点。下面我们看看 6.0 版本一个更强大的 API：<code>makeAutoObservable</code>。</p>\n<p><code>makeAutoObservable</code> 是一个更强大的 <code>makeObservable</code>，可以自动为属性加上对象的包装函数，上手成本直线下降。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> makeAutoObservable <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'mobx\'</span>\n\n<span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeAutoObservable</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  count<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n  <span class="token keyword">get</span> <span class="token function">double</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">*</span> <span class="token number">2</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token function">increment</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">+=</span> <span class="token number">1</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token function">decrement</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">-=</span> <span class="token number">1</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<h3 id="%E8%AE%A1%E7%AE%97%E5%B1%9E%E6%80%A7">计算属性<a class="anchor" href="#%E8%AE%A1%E7%AE%97%E5%B1%9E%E6%80%A7">§</a></h3>\n<p>MobX 的属性与 Vue 的 <code>computed</code> 一样，在 <code>makeAutoObservable</code> 中就是一个 <code>getter</code>，<code>getter</code> 依赖的值一旦发生变化，<code>getter</code> 本身的返回值也会跟随变化。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> makeAutoObservable <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'mobx\'</span>\n\n<span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeAutoObservable</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  count<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n  <span class="token keyword">get</span> <span class="token function">double</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">*</span> <span class="token number">2</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>当 <code>store.count</code> 为 1 时，调用 <code>store.double</code> 会返回 2。</p>\n<h3 id="%E4%BF%AE%E6%94%B9%E8%A1%8C%E4%B8%BA">修改行为<a class="anchor" href="#%E4%BF%AE%E6%94%B9%E8%A1%8C%E4%B8%BA">§</a></h3>\n<p>当我们需要修改 store 上的响应属性时，我们可以通过直接重新赋值的方式修改，但是这样会得到 MobX 的警告⚠️。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeAutoObservable</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  count<span class="token operator">:</span> <span class="token number">0</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n\n<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">getElementById</span><span class="token punctuation">(</span><span class="token string">"increment"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">onclick</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  store<span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">+=</span> <span class="token number">1</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210124212353.png" alt="warn"></p>\n<p>MobX 会提示，在修改响应式对象的属性时，需要通过 action 的方式修改。虽然直接修改也能生效，但是这样会让 MobX 状态的管理比较混乱，而且将状态修改放到 action 中，能够让 MobX 在内部的事务流程中进行修改，以免拿到的某个属性还处于中间态，最后计算的结果不够准确。</p>\n<p><code>makeAutoObservable</code> 中的所有方法都会被处理成 action。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> makeAutoObservable <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'mobx\'</span>\n\n<span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeAutoObservable</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  count<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n  <span class="token keyword">get</span> <span class="token function">double</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">*</span> <span class="token number">2</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token function">increment</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">// action</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">+=</span> <span class="token number">1</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token function">decrement</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">// action</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">-=</span> <span class="token number">1</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>不同于 Vuex，将状态的修改划分为 mutation 和 action，同步修改放到 mutation 中，异步的操作放到 action 中。在 MobX 中，不管是同步还是异步操作，都可以放到 action 中，只是异步操作在修改属性时，需要将赋值操作放到 <code>runInAction</code> 中。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> runInAction<span class="token punctuation">,</span> makeAutoObservable <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'mobx\'</span>\n\n<span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeAutoObservable</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  count<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n  <span class="token keyword">async</span> <span class="token function">initCount</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 模拟获取远程的数据</span>\n    <span class="token keyword">const</span> count <span class="token operator">=</span> <span class="token keyword control-flow">await</span> <span class="token keyword">new</span> <span class="token class-name">Promise</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">resolve</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token function">setTimeout</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        <span class="token function">resolve</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span>\n      <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token number">500</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token comment">// 获取数据后，将赋值操作放到 runInAction 中</span>\n    <span class="token function">runInAction</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">=</span> count\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\nstore<span class="token punctuation">.</span><span class="token method function property-access">initCount</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n</code></pre>\n<p>如果不调用 <code>runInAction</code> ，则可以直接调用本身已经存在的 action。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> runInAction<span class="token punctuation">,</span> makeAutoObservable <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'mobx\'</span>\n\n<span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeAutoObservable</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  count<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n  <span class="token function">setCount</span><span class="token punctuation">(</span><span class="token parameter">count</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">=</span> count\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token keyword">async</span> <span class="token function">initCount</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 模拟获取远程的数据</span>\n    <span class="token keyword">const</span> count <span class="token operator">=</span> <span class="token keyword control-flow">await</span> <span class="token keyword">new</span> <span class="token class-name">Promise</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">resolve</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token function">setTimeout</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        <span class="token function">resolve</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span>\n      <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token number">500</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token comment">// 获取数据后，调用已有的 action</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">setCount</span><span class="token punctuation">(</span>count<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\nstore<span class="token punctuation">.</span><span class="token method function property-access">initCount</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n</code></pre>\n<h3 id="%E7%9B%91%E5%90%AC%E5%AF%B9%E8%B1%A1%E5%8F%98%E6%9B%B4">监听对象变更<a class="anchor" href="#%E7%9B%91%E5%90%AC%E5%AF%B9%E8%B1%A1%E5%8F%98%E6%9B%B4">§</a></h3>\n<p>无论是在 React 还是在小程序中想要引入 MobX，都需要在对象变更的时候，通知调用原生的 <code>setState/setData</code> 方法，将状态同步到视图上。</p>\n<p>通过 <code>autorun</code> 方法可以实现这个能力，我们可以把 <code>autorun</code> 理解为 React Hooks 中的 <code>useEffect</code>。每当 store 的响应属性发生修改时，传入 <code>autorun</code> 的方法（<code>effect</code>）就会被调用一次。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> autorun<span class="token punctuation">,</span> makeAutoObservable <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'mobx\'</span>\n\n<span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeAutoObservable</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  count<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n  <span class="token function">setCount</span><span class="token punctuation">(</span><span class="token parameter">count</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">=</span> count\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token function">increment</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span><span class="token operator">++</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token function">decrement</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span><span class="token operator">--</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">getElementById</span><span class="token punctuation">(</span><span class="token string">"increment"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">onclick</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  store<span class="token punctuation">.</span><span class="token property-access">count</span><span class="token operator">++</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">const</span> $count <span class="token operator">=</span> <span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">getElementById</span><span class="token punctuation">(</span><span class="token string">"count"</span><span class="token punctuation">)</span>\n$count<span class="token punctuation">.</span><span class="token property-access">innerText</span> <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>store<span class="token punctuation">.</span><span class="token property-access">count</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span>\n<span class="token function">autorun</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  $count<span class="token punctuation">.</span><span class="token property-access">innerText</span> <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>store<span class="token punctuation">.</span><span class="token property-access">count</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>每当  <code>button#increment</code> 按钮被点击的时候，<code>span#count</code> 内的值就会自动进行同步。👉<a href="https://codesandbox.io/embed/mobx6-d9bex">查看完整代码</a>。</p>\n<p><img src="https://file.shenfq.com/pic/20210124220312.gif" alt="效果演示"></p>\n<p>除了 <code>autorun</code> ，MobX 还提供了更精细化的监听方法：<code>reaction</code>、 <code>when</code>。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> store <span class="token operator">=</span> <span class="token function">makeAutoObservable</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  count<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n  <span class="token function">setCount</span><span class="token punctuation">(</span><span class="token parameter">count</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">=</span> count\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token function">increment</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span><span class="token operator">++</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token function">decrement</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">count</span><span class="token operator">--</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n<span class="token comment">// store 发生修改立即调用 effect</span>\n<span class="token function">autorun</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  $count<span class="token punctuation">.</span><span class="token property-access">innerText</span> <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>store<span class="token punctuation">.</span><span class="token property-access">count</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n\n<span class="token comment">// 第一个方法的返回值修改后才会调用后面的 effect</span>\n<span class="token function">reaction</span><span class="token punctuation">(</span>\n  <span class="token comment">// 表示 store.count 修改后才会调用</span>\n  <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> store<span class="token punctuation">.</span><span class="token property-access">count</span><span class="token punctuation">,</span>\n  <span class="token comment">// 第一个参数为当前值，第二个参数为修改前的值</span>\n  <span class="token comment">// 有点类似与 Vue 中的 watch</span>\n  <span class="token punctuation">(</span><span class="token parameter">value<span class="token punctuation">,</span> prevValue</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n    <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token string">\'diff\'</span><span class="token punctuation">,</span> value <span class="token operator">-</span> prevValue<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">)</span><span class="token punctuation">;</span>\n\n<span class="token comment">// 第一个方法的返回值为真，立即调用后面的 effect</span>\n<span class="token function">when</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> store<span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">></span> <span class="token number">10</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span>store<span class="token punctuation">.</span><span class="token property-access">count</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token comment">// when 方法还能返回一个 promise</span>\n<span class="token punctuation">(</span><span class="token keyword">async</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">await</span> <span class="token function">when</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> store<span class="token punctuation">.</span><span class="token property-access">count</span> <span class="token operator">></span> <span class="token number">10</span><span class="token punctuation">)</span>\n  <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token string">\'store.count > 10\'</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n</code></pre>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>MobX 的介绍到这里就结束了，本文只是大致的列举了一下 MobX 的 API，希望大家能有所收获。后续打算再深入研究下 MobX 的实现，等我研究好了，再写篇文章来分享。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -41,7 +40,7 @@ export default {
         "张家喜"
     ],
     'date': "2021/01/25",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "之前用 Redux 比较多，一直听说 Mobx 能让你体验到在 React 里面写 Vue 的感觉，今天打算尝试下 Mobx 是不是真的有写 Vue 的感觉。 题外话 在介绍 MobX 的用法之前，先说点题外话，我们可以看一下 MobX 的中文简介。在 MobX 的...",
     'cover': "https://file.shenfq.com/pic/20210118134728.png",
     'categories': [
@@ -59,7 +58,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -79,7 +78,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -102,7 +101,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -124,7 +123,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -144,7 +143,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -164,7 +163,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -185,7 +184,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -205,7 +204,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -226,7 +225,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -246,7 +245,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -267,7 +266,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -287,7 +286,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -308,7 +307,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -331,7 +330,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -351,7 +350,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -371,7 +370,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -394,7 +393,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -415,7 +414,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -437,7 +436,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -459,7 +458,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -480,7 +479,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -501,7 +500,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -523,7 +522,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -545,7 +544,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -566,7 +565,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -587,7 +586,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -608,7 +607,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -629,7 +628,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -650,7 +649,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -671,7 +670,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -693,7 +692,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -716,7 +715,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -737,7 +736,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -759,7 +758,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -778,7 +777,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -800,7 +799,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -821,7 +820,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -843,7 +842,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -863,7 +862,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -884,7 +883,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -907,7 +906,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -931,7 +930,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -954,7 +953,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -973,7 +972,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -992,7 +991,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1016,7 +1015,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1037,7 +1036,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1060,7 +1059,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1081,7 +1080,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1101,7 +1100,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1123,7 +1122,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1144,7 +1143,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1165,7 +1164,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1188,7 +1187,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1210,7 +1209,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1231,7 +1230,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1251,7 +1250,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1272,7 +1271,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1293,7 +1292,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1314,7 +1313,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1336,7 +1335,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1356,7 +1355,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1376,7 +1375,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1397,7 +1396,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1418,7 +1417,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1438,7 +1437,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1459,7 +1458,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1480,7 +1479,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1501,7 +1500,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

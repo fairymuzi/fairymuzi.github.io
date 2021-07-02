@@ -9,7 +9,6 @@ export default {
             __html: '<h1>Go 并发</h1>\n<h1>并发</h1>\n<h2 id="%E5%89%8D%E8%A8%80">前言<a class="anchor" href="#%E5%89%8D%E8%A8%80">§</a></h2>\n<p>在学习 Go 的并发之前，先复习一下操作系统的基础知识。</p>\n<h3 id="%E5%B9%B6%E5%8F%91%E4%B8%8E%E5%B9%B6%E8%A1%8C">并发与并行<a class="anchor" href="#%E5%B9%B6%E5%8F%91%E4%B8%8E%E5%B9%B6%E8%A1%8C">§</a></h3>\n<p>先来理一理并发与并行的区别。</p>\n<blockquote>\n<p>并行：指的是在同一时间，多个程序在不同的 CPU 上共同运行，互相之间并没有对 CPU 资源进行竞争。比如，我在看书的时候，左手用来翻书，右手做笔记，两者可以同时进行。</p>\n</blockquote>\n<blockquote>\n<p>并发：如果系统只有一个 CPU，有多个程序要运行，系统只能将 CPU 的时间划分为多个时间片，然后分配给不同的程序。比如，我看书的时候，只能用右手翻完书之后，才能腾出手来做笔记。</p>\n</blockquote>\n<p>可是明确的是<strong>并发≠并行</strong>，但是只要 CPU 运行足够快，每个时间片划分足够小，就会给人们造成一种假象，认为计算机在同一时刻做了多个事情。</p>\n<h3 id="%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E5%8D%8F%E7%A8%8B">进程、线程、协程<a class="anchor" href="#%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E5%8D%8F%E7%A8%8B">§</a></h3>\n<p><strong>进程</strong>是一个程序执行的过程，也是系统进行资源分配和调度的基本单位。简单来说，一个进程就是我们电脑上某个独立运行的程序。</p>\n<p><img src="https://file.shenfq.com/pic/20210621105313.png" alt=""></p>\n<p>而<strong>线程</strong>是系统能够调度的最小单位，它被包含在进程里面，是进程中的实际运作单位，一个进程可以包含多个线程。可以将进程理解为一个工厂，而工厂里面的工人就是线程。就像工厂里面必须要有一个工人才能工作一样，每个进程里面也必须有一个线程才能工作。比如，JavaScript 就被成为单线程的语言，说明 JavaScript 工厂里面只有一个打工人，这个打工人就是工头，称为主线程。多线程的进程中也会有一个主线程，主线程一般随着进程一起创建和销毁。</p>\n<p><img src="https://file.shenfq.com/pic/20210621105718.com&amp;app=2002&amp;size=f9999,10000&amp;q=a80&amp;n=0&amp;g=0n&amp;fmt=jpeg" alt="🏭-👷🏻"></p>\n<p>进程与线程都是操作系统上的概念，程序中如果要进行进程或者线程的切换，在切换的过程中，需要先保存当线程的状态，然后恢复另一个线程的状态，这是需要耗费时间的，如果是进程的切换还可能跨 CPU，无法利用 CPU 缓存，导致进程比线程的切换成本更加高昂。</p>\n<p><img src="https://file.shenfq.com/pic/20210621155946.png" alt=""></p>\n<p>所以，除了系统级别的内核线程外，一些程序中创建了用户线程这一说，这么做可以减少与操作系统交互，将线程的切换控制在程序内，这种用户态的线程被称为协程。用户线程的切换完全由程序控制，实际上使用的内核线程就只存在一个，内核线程与用户线程之间的关系为一对多。虽然这样做可以减少线程上下文切换带来的开销，但是，无法避免阻塞的问题。一旦某个用户线程被阻塞会导致内核线程的阻塞，无法进行用户线程进行切换，从而整个进程都被挂起，</p>\n<p><img src="https://file.shenfq.com/pic/20210621160930.png" alt=""></p>\n<h2 id="%E5%8D%8F%E7%A8%8B">协程<a class="anchor" href="#%E5%8D%8F%E7%A8%8B">§</a></h2>\n<p>Go 语言中的线程模型既不是使用内核线程，也不是完全的用户线程，而是一种混合型的线程模型。用户线程与内核线程的对应关系为多对多，用户线程与内核线程动态关联，当某个线程出现阻塞的时候，可以动态切换到另外的内核线程上。</p>\n<p><img src="https://file.shenfq.com/pic/20210621172057.png" alt=""></p>\n<h3 id="g-p-m%E6%A8%A1%E5%9E%8B">G-P-M模型<a class="anchor" href="#g-p-m%E6%A8%A1%E5%9E%8B">§</a></h3>\n<p>上面只是 Go 语言中抽象层面的线程模型，具体是如何进行线程调度的，还是看看 Go 语言的代码。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">log</span><span class="token punctuation">(</span>msg <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"hello"</span><span class="token punctuation">)</span>\n  <span class="token keyword">go</span> <span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"world"</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>之前的文章介绍过，Go 程序在运行时，默认以 <code>main</code> 函数为入口，<code>main</code> 函数中运行的代码会到一个 goroutine 中运行。如果我们在调用的函数前，加上一个 <code>go</code> 关键词，那么这个函数就放到另外一个 goroutine 中运行。</p>\n<p>这里说的 <code>goroutine</code> 就是 Go 语言中的用户线程，也就是协程。Go 语言在运行时，会建立一个 G-P-M 模型，这个模型专门负责 goroutine 的调度。</p>\n<ul>\n<li>G：gotoutine（用户线程）；</li>\n<li>P：processor（逻辑处理器）；</li>\n<li>M：machine（机器资源）；</li>\n</ul>\n<p>每个 goroutine 都会放到一个 goroutine 队列中，由于是用户自主创建，上下文的切换成本极低。P（processor）的主要作用是管理用户线程，将 goroutine 合理的安排到内核线程上，也就是这个模型的 M。通常情况下，G 的数量远远多于 M。</p>\n<p><img src="https://file.shenfq.com/pic/20210621212754.png" alt=""></p>\n<h3 id="goroutine">Goroutine<a class="anchor" href="#goroutine">§</a></h3>\n<p>如果你有运行过上面的代码，你会发现，<code>go</code> 关键词后的函数并没有真正执行。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">log</span><span class="token punctuation">(</span>msg <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"hello"</span><span class="token punctuation">)</span>\n  <span class="token keyword">go</span> <span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"world"</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>运行后，终端只输出了 <code>hello</code>，并没有输出 <code>world</code>。</p>\n<p><img src="https://file.shenfq.com/pic/20210621213710.png" alt=""></p>\n<p>这是因为 <code>main</code> 函数会在主 goroutine 中运行，类似于主线程，而每个 go 语句会启动一个新的 goroutine，启动后的 goroutine 并不会直接执行，而是会放入一个 G 队列中，等待 P 的分配。但是主 goroutine 结束后，就意味着程序结束了，G 队列中的 goroutine 还没有等到执行时间。所以，go 语句后的函数是一个异步的函数，go 语句调用后，会立即去执行后面的语句，而不会等待 go 语句后的函数执行。</p>\n<p>如果要 <code>world</code> 输出，我们可以在 <code>main</code> 函数后面加一个休眠，延长主 goroutine 的执行时间。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">import</span> <span class="token punctuation">(</span>\n  <span class="token string">"fmt"</span>\n  <span class="token string">"time"</span>\n<span class="token punctuation">)</span>\n<span class="token keyword">func</span> <span class="token function">log</span><span class="token punctuation">(</span>msg <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"hello"</span><span class="token punctuation">)</span>\n  <span class="token keyword">go</span> <span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"world"</span><span class="token punctuation">)</span>\n  time<span class="token punctuation">.</span><span class="token function">Sleep</span><span class="token punctuation">(</span>time<span class="token punctuation">.</span>Millisecond <span class="token operator">*</span> <span class="token number">500</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210621221428.png" alt=""></p>\n<h2 id="%E9%80%9A%E9%81%93">通道<a class="anchor" href="#%E9%80%9A%E9%81%93">§</a></h2>\n<p>多线程编程中，由于各个线程之间需要共享数据，一般采用的是共享内存的方案。但是这么做，势必会出现多个线程同时修改同一份数据情况，为了保证数据的安全性，需要为数据加锁，处理起来就比较麻烦。</p>\n<p>所以在 Go 语言社区有一句名言：</p>\n<blockquote>\n<p>不要通过共享内存来通信，而应该通过通信来共享内存。</p>\n</blockquote>\n<h3 id="%E5%88%9B%E5%BB%BA%E9%80%9A%E9%81%93">创建通道<a class="anchor" href="#%E5%88%9B%E5%BB%BA%E9%80%9A%E9%81%93">§</a></h3>\n<p>这里说的通信的方式，就是 Go 语言中的通道（<code>channel</code>）。通道是 Go 语言中的一种特殊类型，需要通过 <code>make</code> 方法创建一个通道。</p>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">int</span><span class="token punctuation">)</span> <span class="token comment">// 创建一个 int 类型的通道</span>\n</code></pre>\n<p>创建通道的时候，需要加上一个类型，表示该通道传输数据的类型。也可以通过指定一个空接口的方式，创建一个可以传送任意数据的通道。</p>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token keyword">interface</span><span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>创建的通道分为无缓存通道和有缓存通道，<code>make</code> 方法的第二个参数表示可缓存的数量（如果传入 0，效果和不传一样）。</p>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token comment">// 无缓存通道，传入</span>\nch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span>\n</code></pre>\n<h3 id="%E5%8F%91%E9%80%81%E5%92%8C%E6%8E%A5%E6%94%B6%E6%95%B0%E6%8D%AE">发送和接收数据<a class="anchor" href="#%E5%8F%91%E9%80%81%E5%92%8C%E6%8E%A5%E6%94%B6%E6%95%B0%E6%8D%AE">§</a></h3>\n<p>通道创建后，通过 <code>&lt;-</code>  符号来接收和发送数据。</p>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">)</span>\nch <span class="token operator">&lt;-</span> <span class="token string">"hello world"</span> <span class="token comment">// 发送一个字符串</span>\nmsg <span class="token operator">:=</span> <span class="token operator">&lt;-</span> ch <span class="token comment">// 接收之前发送的字符串</span>\n</code></pre>\n<p>实际在这个代码运行的时候，会提示一个错误。</p>\n<pre class="language-autoit"><code class="language-autoit">fatal error<span class="token punctuation">:</span> all goroutines are asleep <span class="token operator">-</span> deadlock!\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210622144651.png" alt=""></p>\n<p>表明当前的 goroutine 处于挂起状态，并且后续不会有响应，只能直接中断程序。因为这里创建的是无缓存通道，发送数据后通道不会将数据缓存在通道中，导致后面要找通道要数据的时候无法正常从通道中获取数据。我们可以将通道的缓存设置为 1，让通道可以缓存一个数据在里面。</p>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span>\nch <span class="token operator">&lt;-</span> <span class="token string">"hello world"</span> <span class="token comment">// 发送一个字符串</span>\nmsg <span class="token operator">:=</span> <span class="token operator">&lt;-</span> ch <span class="token comment">// 接收之前发送的字符串</span>\nfmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210622153815.png" alt=""></p>\n<p>但是如果发送的数据超出了缓存数量，或者接受数据时，缓存里面已经没有数据了，依然会报错。</p>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span>\nch <span class="token operator">&lt;-</span> <span class="token string">"hello world"</span>\nch <span class="token operator">&lt;-</span> <span class="token string">"hello world"</span>\n\n<span class="token comment">// fatal error: all goroutines are asleep - deadlock!</span>\n</code></pre>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span>\nch <span class="token operator">&lt;-</span> <span class="token string">"hello world"</span>\n<span class="token operator">&lt;-</span> ch\n<span class="token operator">&lt;-</span> ch\n\n<span class="token comment">// fatal error: all goroutines are asleep - deadlock!</span>\n</code></pre>\n<h3 id="%E5%8D%8F%E7%A8%8B%E4%B8%AD%E4%BD%BF%E7%94%A8%E9%80%9A%E9%81%93">协程中使用通道<a class="anchor" href="#%E5%8D%8F%E7%A8%8B%E4%B8%AD%E4%BD%BF%E7%94%A8%E9%80%9A%E9%81%93">§</a></h3>\n<p>那么无缓存的通道中，应该怎么发送和接收数据呢？这就需要将通道与协程进行结合，也就是 Go 语言中常用的并发的开发模式。</p>\n<p>无缓存的通道在收发数据时，由于一次只能同步的发送一个数据，会在两个 goroutine 间反复横跳，通道在接受数据时，会阻塞当前 goroutine，直到通道在另一个 goroutine 发送了数据。</p>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token comment">// 创建一个无缓存通道</span>\ntemp <span class="token operator">:=</span> <span class="token string">"我在地球"</span>\n<span class="token keyword">go</span> <span class="token keyword">func</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>  \n  <span class="token comment">// 接收一个字符串</span>\n  ch <span class="token operator">&lt;-</span> <span class="token string">"hello world"</span>\n  temp <span class="token operator">=</span> <span class="token string">"进入了异次元"</span>\n<span class="token punctuation">}</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n<span class="token comment">// 运行到这里会被阻塞</span>\n<span class="token comment">// 直到通道在另一个 goroutine 发送了数据</span>\nmsg <span class="token operator">:=</span> <span class="token operator">&lt;-</span> ch\nfmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span>\nfmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span><span class="token string">"temp =>"</span><span class="token punctuation">,</span> temp<span class="token punctuation">)</span>\n</code></pre>\n<p>为了证明通道在接收数据时会被阻塞，我们可以在前面加上一个 <code>temp</code> 变量，然后在另外的 goroutine 中修改这个变量，看最后输出的值是否被修改，以此证明通道在接受数据时是否发生了阻塞。</p>\n<p><img src="https://file.shenfq.com/pic/20210622164403.png" alt=""></p>\n<p>运行结果已经证明，当通道接收数据时，阻塞了主 goroutine 的执行。除了主动的从通道里面一条条的获取数据，还可以通过 <code>range</code> 的方式循环获取数据。</p>\n<pre class="language-go"><code class="language-go">ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">)</span>\n\n<span class="token keyword">go</span> <span class="token keyword">func</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">for</span> i <span class="token operator">:=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> <span class="token number">5</span><span class="token punctuation">;</span> i<span class="token operator">++</span> <span class="token punctuation">{</span>\n    ch <span class="token operator">&lt;-</span> fmt<span class="token punctuation">.</span><span class="token function">Sprintf</span><span class="token punctuation">(</span><span class="token string">"数据 %d"</span><span class="token punctuation">,</span> i<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">close</span><span class="token punctuation">(</span>ch<span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n\n<span class="token keyword">for</span> data <span class="token operator">:=</span> <span class="token keyword">range</span> ch <span class="token punctuation">{</span>\n    fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span><span class="token string">"接收 =>"</span><span class="token punctuation">,</span> data<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210622174528.png" alt=""></p>\n<p>如果使用 range 循环读取通道中的数据时，在数据发送完毕时，需要调用 <code>close(ch)</code> ，将通道关闭。</p>\n<h2 id="%E5%AE%9E%E6%88%98">实战<a class="anchor" href="#%E5%AE%9E%E6%88%98">§</a></h2>\n<p>在了解了前面的基础知识之后，我们可以通过协程 + 通道的写一段爬虫，来实战一下 Go 语言的并发能力。</p>\n<p>首先确定爬虫需要爬取的网站，由于个人比较喜欢看电影，所以决定爬一爬豆瓣的电影 TOP 榜单。</p>\n<p><img src="https://file.shenfq.com/pic/20210622205053.png" alt=""></p>\n<p>其域名为 <code>https://movie.douban.com/top250</code>，翻到第二页后，域名为 <code>https://movie.douban.com/top250?start=25</code> ，第三页的域名为 <code>https://movie.douban.com/top250?start=50</code>，说明每次这个 TOP 榜单每页会有 25 部电影，每次翻页就给 <code>start</code> 参数加上 25。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">const</span> limit <span class="token operator">=</span> <span class="token number">25</span> <span class="token comment">// 每页的数量为 25</span>\n<span class="token keyword">const</span> total <span class="token operator">=</span> <span class="token number">100</span> <span class="token comment">// 爬取榜单的前 100 部电影</span>\n<span class="token keyword">const</span> page <span class="token operator">=</span> total <span class="token operator">/</span> limit <span class="token comment">// 需要爬取的页数</span>\n\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> start <span class="token builtin">int</span>\n  <span class="token keyword">var</span> url <span class="token builtin">string</span>\n  <span class="token keyword">for</span> i <span class="token operator">:=</span><span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> page<span class="token punctuation">;</span> i<span class="token operator">++</span> <span class="token punctuation">{</span>\n    start <span class="token operator">:=</span> i <span class="token operator">*</span> limit\n    <span class="token comment">// 计算得到所有的域名</span>\n    url <span class="token operator">:=</span> <span class="token string">"<a class="token url-link" href="https://movie.douban.com/top250?start=">https://movie.douban.com/top250?start=</a>"</span> <span class="token operator">+</span> strconv<span class="token punctuation">.</span><span class="token function">Itoa</span><span class="token punctuation">(</span>start<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>然后，我们可以构造一个 fetch 函数，用于请求对应的页面。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">fetch</span><span class="token punctuation">(</span>url <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 构造请求体</span>\n  req<span class="token punctuation">,</span> <span class="token boolean">_</span> <span class="token operator">:=</span> http<span class="token punctuation">.</span><span class="token function">NewRequest</span><span class="token punctuation">(</span><span class="token string">"GET"</span><span class="token punctuation">,</span> url<span class="token punctuation">,</span> <span class="token boolean">nil</span><span class="token punctuation">)</span>\n  <span class="token comment">// 由于豆瓣会校验请求的 Header</span>\n  <span class="token comment">// 如果没有 User-Agent，http code 会返回 418</span>\n  req<span class="token punctuation">.</span>Header<span class="token punctuation">.</span><span class="token function">Add</span><span class="token punctuation">(</span><span class="token string">"User-Agent"</span><span class="token punctuation">,</span> <span class="token string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"</span><span class="token punctuation">)</span>\n\n  <span class="token comment">// 发送请求</span>\n  client <span class="token operator">:=</span> <span class="token operator">&amp;</span>http<span class="token punctuation">.</span>Client<span class="token punctuation">{</span><span class="token punctuation">}</span>\n  rsp<span class="token punctuation">,</span> <span class="token boolean">_</span> <span class="token operator">:=</span> client<span class="token punctuation">.</span><span class="token function">Do</span><span class="token punctuation">(</span>req<span class="token punctuation">)</span>\n\n  <span class="token comment">// 断开连接</span>\n  <span class="token keyword">defer</span> rsp<span class="token punctuation">.</span>Body<span class="token punctuation">.</span><span class="token function">Close</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">for</span> i <span class="token operator">:=</span><span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> page<span class="token punctuation">;</span> i<span class="token operator">++</span> <span class="token punctuation">{</span>\n    url <span class="token operator">:=</span> ……\n    <span class="token keyword">go</span> <span class="token function">fetch</span><span class="token punctuation">(</span>url<span class="token punctuation">,</span> ch<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>然后使用 <code>goquery</code> 来解析 HTML，提取电影的排名以及电影名。</p>\n<p><img src="https://file.shenfq.com/pic/20210622210049.png" alt="image-20210622210049300"></p>\n<pre class="language-go"><code class="language-go"><span class="token comment">// 第二个参数为与主goroutine 沟通的通道</span>\n<span class="token keyword">func</span> <span class="token function">fetch</span><span class="token punctuation">(</span>url <span class="token builtin">string</span><span class="token punctuation">,</span> ch <span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 省略部分代码 ……</span>\n  rsp<span class="token punctuation">,</span> <span class="token boolean">_</span> <span class="token operator">:=</span> client<span class="token punctuation">.</span><span class="token function">Do</span><span class="token punctuation">(</span>req<span class="token punctuation">)</span>\n  <span class="token comment">// 断开连接</span>\n  <span class="token keyword">defer</span> rsp<span class="token punctuation">.</span>Body<span class="token punctuation">.</span><span class="token function">Close</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token comment">// 解析 HTML</span>\n  doc<span class="token punctuation">,</span> <span class="token boolean">_</span> <span class="token operator">:=</span> goquery<span class="token punctuation">.</span><span class="token function">NewDocumentFromReader</span><span class="token punctuation">(</span>rsp<span class="token punctuation">.</span>Body<span class="token punctuation">)</span>\n  <span class="token comment">// 提取 HTML 中的电影排行与电影名称</span>\n  doc<span class="token punctuation">.</span><span class="token function">Find</span><span class="token punctuation">(</span><span class="token string">".item"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">Each</span><span class="token punctuation">(</span><span class="token keyword">func</span><span class="token punctuation">(</span><span class="token boolean">_</span> <span class="token builtin">int</span><span class="token punctuation">,</span> s <span class="token operator">*</span>goquery<span class="token punctuation">.</span>Selection<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    num <span class="token operator">:=</span> s<span class="token punctuation">.</span><span class="token function">Find</span><span class="token punctuation">(</span><span class="token string">".pic em"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">Text</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    title <span class="token operator">:=</span> s<span class="token punctuation">.</span><span class="token function">Find</span><span class="token punctuation">(</span><span class="token string">".title::first-child"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">Text</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token comment">// 将电影排行与名称写入管道中</span>\n    ch <span class="token operator">&lt;-</span> fmt<span class="token punctuation">.</span><span class="token function">Sprintf</span><span class="token punctuation">(</span><span class="token string">"top %s: %s\n"</span><span class="token punctuation">,</span> num<span class="token punctuation">,</span> title<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>最后，在主 goroutine 中创建通道，以及接收通道中的数据。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">)</span>\n\n  <span class="token keyword">for</span> i <span class="token operator">:=</span><span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> page<span class="token punctuation">;</span> i<span class="token operator">++</span> <span class="token punctuation">{</span>\n    url <span class="token operator">:=</span> ……\n    <span class="token keyword">go</span> <span class="token function">fetch</span><span class="token punctuation">(</span>url<span class="token punctuation">,</span> ch<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword">for</span> i <span class="token operator">:=</span><span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> total<span class="token punctuation">;</span> i<span class="token operator">++</span> <span class="token punctuation">{</span>\n    top <span class="token operator">:=</span> <span class="token operator">&lt;-</span> ch <span class="token comment">// 接收数据</span>\n    fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>top<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>最后的执行结果如下：</p>\n<p><img src="https://file.shenfq.com/pic/20210622210918.png" alt=""></p>\n<p>可以看到由于是并发执行，输出的顺序是乱序。</p>\n<h3 id="%E5%AE%8C%E6%95%B4%E4%BB%A3%E7%A0%81">完整代码<a class="anchor" href="#%E5%AE%8C%E6%95%B4%E4%BB%A3%E7%A0%81">§</a></h3>\n<pre class="language-go"><code class="language-go"><span class="token keyword">package</span> main\n\n<span class="token keyword">import</span> <span class="token punctuation">(</span>\n  <span class="token string">"fmt"</span>\n  <span class="token string">"github.com/PuerkitoBio/goquery"</span>\n  <span class="token string">"net/http"</span>\n  <span class="token string">"strconv"</span>\n<span class="token punctuation">)</span>\n\n<span class="token keyword">const</span> limit <span class="token operator">=</span> <span class="token number">25</span>\n<span class="token keyword">const</span> total <span class="token operator">=</span> <span class="token number">100</span>\n<span class="token keyword">const</span> page <span class="token operator">=</span> total <span class="token operator">/</span> limit\n\n<span class="token keyword">func</span> <span class="token function">fetch</span><span class="token punctuation">(</span>url <span class="token builtin">string</span><span class="token punctuation">,</span> ch <span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  req<span class="token punctuation">,</span> <span class="token boolean">_</span> <span class="token operator">:=</span> http<span class="token punctuation">.</span><span class="token function">NewRequest</span><span class="token punctuation">(</span><span class="token string">"GET"</span><span class="token punctuation">,</span> url<span class="token punctuation">,</span> <span class="token boolean">nil</span><span class="token punctuation">)</span>\n  req<span class="token punctuation">.</span>Header<span class="token punctuation">.</span><span class="token function">Add</span><span class="token punctuation">(</span><span class="token string">"User-Agent"</span><span class="token punctuation">,</span> <span class="token string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"</span><span class="token punctuation">)</span>\n\n  client <span class="token operator">:=</span> <span class="token operator">&amp;</span>http<span class="token punctuation">.</span>Client<span class="token punctuation">{</span><span class="token punctuation">}</span>\n  rsp<span class="token punctuation">,</span> <span class="token boolean">_</span> <span class="token operator">:=</span> client<span class="token punctuation">.</span><span class="token function">Do</span><span class="token punctuation">(</span>req<span class="token punctuation">)</span>\n\n  <span class="token keyword">defer</span> rsp<span class="token punctuation">.</span>Body<span class="token punctuation">.</span><span class="token function">Close</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n\n  doc<span class="token punctuation">,</span> <span class="token boolean">_</span> <span class="token operator">:=</span> goquery<span class="token punctuation">.</span><span class="token function">NewDocumentFromReader</span><span class="token punctuation">(</span>rsp<span class="token punctuation">.</span>Body<span class="token punctuation">)</span>\n\n  doc<span class="token punctuation">.</span><span class="token function">Find</span><span class="token punctuation">(</span><span class="token string">".item"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">Each</span><span class="token punctuation">(</span><span class="token keyword">func</span><span class="token punctuation">(</span><span class="token boolean">_</span> <span class="token builtin">int</span><span class="token punctuation">,</span> s <span class="token operator">*</span>goquery<span class="token punctuation">.</span>Selection<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    num <span class="token operator">:=</span> s<span class="token punctuation">.</span><span class="token function">Find</span><span class="token punctuation">(</span><span class="token string">".pic em"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">Text</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    title <span class="token operator">:=</span> s<span class="token punctuation">.</span><span class="token function">Find</span><span class="token punctuation">(</span><span class="token string">"span.title::first-child"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">Text</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    ch <span class="token operator">&lt;-</span> fmt<span class="token punctuation">.</span><span class="token function">Sprintf</span><span class="token punctuation">(</span><span class="token string">"top %s: %s\n"</span><span class="token punctuation">,</span> num<span class="token punctuation">,</span> title<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  ch <span class="token operator">:=</span> <span class="token function">make</span><span class="token punctuation">(</span><span class="token keyword">chan</span> <span class="token builtin">string</span><span class="token punctuation">)</span>\n\n  <span class="token keyword">for</span> i <span class="token operator">:=</span><span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> page<span class="token punctuation">;</span> i<span class="token operator">++</span> <span class="token punctuation">{</span>\n    start <span class="token operator">:=</span> i <span class="token operator">*</span> limit\n    url <span class="token operator">:=</span> <span class="token string">"<a class="token url-link" href="https://movie.douban.com/top250?start=">https://movie.douban.com/top250?start=</a>"</span> <span class="token operator">+</span> strconv<span class="token punctuation">.</span><span class="token function">Itoa</span><span class="token punctuation">(</span>start<span class="token punctuation">)</span>\n    <span class="token keyword">go</span> <span class="token function">fetch</span><span class="token punctuation">(</span>url<span class="token punctuation">,</span> ch<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword">for</span> i <span class="token operator">:=</span><span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> total<span class="token punctuation">;</span> i<span class="token operator">++</span> <span class="token punctuation">{</span>\n    top <span class="token operator">:=</span> <span class="token operator">&lt;-</span> ch\n    fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>top<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -54,7 +53,7 @@ export default {
         "张家喜"
     ],
     'date': "2021/06/22",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "并发 前言 在学习 Go 的并发之前，先复习一下操作系统的基础知识。 并发与并行 先来理一理并发与并行的区别。 可是明确的是并发≠并行，但是只要 CPU 运行足够快，每个时间片划分足够小，就会给人们造成一种假象，认为计算机在...",
     'cover': "https://file.shenfq.com/pic/20210621105313.png",
     'categories': [
@@ -72,7 +71,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -92,7 +91,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -115,7 +114,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -137,7 +136,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -157,7 +156,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -177,7 +176,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -198,7 +197,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -218,7 +217,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -239,7 +238,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -259,7 +258,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -280,7 +279,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -300,7 +299,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -321,7 +320,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -344,7 +343,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -364,7 +363,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -384,7 +383,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -407,7 +406,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -428,7 +427,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -450,7 +449,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -472,7 +471,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -493,7 +492,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -514,7 +513,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -536,7 +535,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -558,7 +557,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -579,7 +578,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -600,7 +599,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -621,7 +620,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -642,7 +641,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -663,7 +662,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -684,7 +683,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -706,7 +705,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -729,7 +728,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -750,7 +749,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -772,7 +771,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -791,7 +790,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -813,7 +812,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -834,7 +833,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -856,7 +855,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -876,7 +875,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -897,7 +896,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -920,7 +919,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -944,7 +943,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -967,7 +966,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -986,7 +985,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1005,7 +1004,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1029,7 +1028,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1050,7 +1049,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1073,7 +1072,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1094,7 +1093,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1114,7 +1113,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1136,7 +1135,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1157,7 +1156,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1178,7 +1177,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1201,7 +1200,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1223,7 +1222,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1244,7 +1243,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1264,7 +1263,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1285,7 +1284,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1306,7 +1305,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1327,7 +1326,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1349,7 +1348,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1369,7 +1368,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1389,7 +1388,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1410,7 +1409,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1431,7 +1430,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1451,7 +1450,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1472,7 +1471,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1493,7 +1492,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1514,7 +1513,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

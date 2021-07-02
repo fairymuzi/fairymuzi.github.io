@@ -9,7 +9,6 @@ export default {
             __html: '<h1>Go 模块化</h1>\n<h2 id="%E5%89%8D%E8%A8%80">前言<a class="anchor" href="#%E5%89%8D%E8%A8%80">§</a></h2>\n<p>在很久很久以前，就 push 自己学过 go 语言，但是之前只是看了一下基础语法就放弃了，实在是工作当中没有应用场景。最近发现基于 go 写的 esbuild 异军突起，想要深入研究下它的奥秘，发现看不懂。于是，打算先从 go 开始学一遍，等我把 go 学好了，再去研究 esbuild。所以，最近的几篇文章都会写 go 的一些学习心得，今天的文章就从 go 语言的模块化开始。</p>\n<p><img src="https://file.shenfq.com/pic/20210405193808.png" alt=""></p>\n<h2 id="%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F">环境变量<a class="anchor" href="#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F">§</a></h2>\n<p>学习 go 语言的第一步，当然是安装以及环境变量。由于我是 macos，直接运行 <code>brew install go</code> 就能安装成功，也可以在<a href="https://golang.google.cn/">官网（https://golang.google.cn/）</a>下载对应的二进制包。</p>\n<p>安装成功后，需要配置下面几个环境变量：</p>\n<ul>\n<li>GOROOT：go 语言的安装路径；</li>\n<li>GOBIN：go 语言的可执行文件路径，一般为 <code>&quot;$GOROOT/bin&quot;</code>；</li>\n<li>GOPATH：工作目录，可设置多个，每个项目都可以设置一个单独的GOPATH；</li>\n</ul>\n<h2 id="gopath">GOPATH<a class="anchor" href="#gopath">§</a></h2>\n<p>在 GoLand（go 语言最强IDE） 中，我们可以在 <code>Preferences</code> 中设置多个 GOPATH，而且将 GOPATH 分为全局和局部的。</p>\n<p><img src="https://file.shenfq.com/pic/20210402194612.png" alt=""></p>\n<p>GOPATH 最早出现的意义是用来进行模块管理，每个 GOPATH 中会有三个目录：</p>\n<ul>\n<li>src：用来存放源代码；</li>\n<li>pkg：用来存放编译后的 <code>.a(archive)</code> 静态库文件；</li>\n<li>bin：用来存放编译后可直接运行的二进制文件；</li>\n</ul>\n<p><img src="https://file.shenfq.com/pic/20210402194916.png" alt=""></p>\n<p>一般设置为工作目录的 src 文件夹需要手动创建，其他两个目录都是编译后自动生成的。</p>\n<p>接下来，我们新建了一个目录 <code>~/Code/goland/go-story</code>，并将该目录设置为工作目录。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token builtin class-name">export</span> <span class="token assign-left variable">GOPATH</span><span class="token operator">=</span><span class="token string">"~/Code/goland/go-story"</span>\n</code></pre>\n<p>然后在当前目录新建一个 <code>src</code> 文件夹，并新建一个 <code>hello</code> 目录，在 <code>hello</code> 目录新建 <code>main.go</code> 文件。</p>\n<p><img src="https://file.shenfq.com/pic/20210405141212.png" alt=""></p>\n<p>在 <code>hello/main.go</code> 文件中，写入如下代码：</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">package</span> main\n\n<span class="token keyword">import</span> <span class="token punctuation">(</span>\n  <span class="token string">"flag"</span>\n  <span class="token string">"fmt"</span>\n<span class="token punctuation">)</span>\n\n<span class="token keyword">var</span> name <span class="token builtin">string</span>\n\n<span class="token keyword">func</span> <span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  flag<span class="token punctuation">.</span><span class="token function">StringVar</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>name<span class="token punctuation">,</span> <span class="token string">"name"</span><span class="token punctuation">,</span> <span class="token string">"everyone"</span><span class="token punctuation">,</span> <span class="token string">"The greeting object."</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  flag<span class="token punctuation">.</span><span class="token function">Parse</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">// 解析命令行参数</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"\nHello %s\n"</span><span class="token punctuation">,</span> name<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>flag 库是 go 内置的模块，类似于 node 的 <a href="https://www.npmjs.com/package/commander">commander</a> 库，运行后结果如下所示：</p>\n<p><img src="https://file.shenfq.com/pic/20210405143954.png" alt=""></p>\n<p>下面我们引入一个能够让命令行输出色彩更加丰富的库：<a href="https://github.com/TreyBastian/colourize">colourize</a>，类似于 node 中的 <a href="https://www.npmjs.com/package/chalk">chalk</a>。通过下面这个命令来安装依赖：</p>\n<pre class="language-bash"><code class="language-bash">go get github.com/TreyBastian/colourize \n</code></pre>\n<p>运行之后，我们可以看到在工作区自动创建了一个 <code>pkg</code> 目录，目录下新生成的是 <code>colourize</code> 库文件，同时 src 目录也新建了一个 <code>github.com</code> 目录，用来放 <code>colourize</code> 的源码。</p>\n<p><img src="https://file.shenfq.com/pic/20210405141929.png" alt=""></p>\n<p><code>go get</code> 命令可以简单理解为 <code>npm install</code>。接下来就能在 <code>hello/main.go</code> 中引入依赖。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">package</span> main\n\n<span class="token keyword">import</span> <span class="token punctuation">(</span>\n  <span class="token string">"flag"</span>\n  <span class="token string">"fmt"</span>\n\n  <span class="token string">"github.com/TreyBastian/colourize"</span>\n<span class="token punctuation">)</span>\n\n<span class="token keyword">var</span> name <span class="token builtin">string</span>\n\n<span class="token keyword">func</span> <span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  flag<span class="token punctuation">.</span><span class="token function">StringVar</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>name<span class="token punctuation">,</span> <span class="token string">"name"</span><span class="token punctuation">,</span> <span class="token string">"everyone"</span><span class="token punctuation">,</span> <span class="token string">"The greeting object."</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">func</span> <span class="token function">hello</span><span class="token punctuation">(</span>name <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span>colourize<span class="token punctuation">.</span><span class="token function">Colourize</span><span class="token punctuation">(</span><span class="token string">"\nHello %s\n"</span><span class="token punctuation">,</span> colourize<span class="token punctuation">.</span>Blue<span class="token punctuation">)</span><span class="token punctuation">,</span> name<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  flag<span class="token punctuation">.</span><span class="token function">Parse</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token function">hello</span><span class="token punctuation">(</span>name<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>运行 <code>hello/main.go</code> 可以看到命令行输出了蓝色的文字。</p>\n<p><img src="https://file.shenfq.com/pic/20210405142320.png" alt=""></p>\n<p>默认情况下，go 依赖的加载机制为：</p>\n<ul>\n<li><code>$GOROOT</code> 下的 <code>src</code> 目录</li>\n<li><code>$GOPATH</code> 下的 <code>src</code> 目录</li>\n</ul>\n<h2 id="go-vendor">Go Vendor<a class="anchor" href="#go-vendor">§</a></h2>\n<p>前面这种方式，有个很麻烦的问题，就是没有办法进行很好的版本管理，而且多个依赖分散在 <code>$GOPATH/src</code> 目录下，可能会出现很多很麻烦的问题。</p>\n<p>例如，我现在在 <code>GOPATH</code> 下有两个项目：<code>go-blog</code>、<code>go-stroy</code>，这两个项目分别有不同的依赖，分散在 <code>github.com</code> 目录，这个时候到底要不要将整个 <code>github.com</code> 目录添加到版本库呢？</p>\n<p><img src="https://file.shenfq.com/pic/20210405150429.png" alt=""></p>\n<p>go 在 1.5 版本的时候，引入了 vendor 机制，在每个项目目录下可以通过 <code>vendor</code> 目录存放依赖，这类似于 node 中的 <code>node_modules</code> 目录。</p>\n<p><img src="https://file.shenfq.com/pic/20210405150802.png" alt=""></p>\n<p>使用 <code>go vendor</code> 需要先安装 <code>govendor</code> 模块。</p>\n<pre class="language-bash"><code class="language-bash">go get govendor\n</code></pre>\n<p>然后在项目目录运行如下命令。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token builtin class-name">cd</span> ~/Code/gland/go-story/src/hello\ngovendor init\ngovendor <span class="token function">add</span> github.com/TreyBastian/colourize\n</code></pre>\n<p>可以看到，<code>hello</code> 项目下新生成了一个 <code>vendor</code> 目录，而且 <code>colourize</code> 也被拷贝到了该目录下。</p>\n<p><img src="https://file.shenfq.com/pic/20210405150717.png" alt=""></p>\n<p>而且 <code>govendor</code> 会新建一个 <code>vendor.json</code> 文件，用来进行依赖项的管理。</p>\n<p><img src="https://file.shenfq.com/pic/20210405151449.png" alt=""></p>\n<p>有了 <code>go vendor</code> 之后，依赖项的加载顺序如下：</p>\n<ul>\n<li>项目目录下的 <code>vendor</code> 目录</li>\n<li>项目目录上一级的 <code>vendor</code> 目录</li>\n<li>不断向上冒泡 ……（PS. 类似于 <code>node_modules</code>）</li>\n<li><code>$GOPATH</code> 下的 <code>vendor</code> 目录</li>\n<li><code>$GOROOT</code> 下的 <code>src</code> 目录</li>\n<li><code>$GOPATH</code> 下的 <code>src</code> 目录</li>\n</ul>\n<h3 id="%E9%85%8D%E7%BD%AE%E5%BC%80%E5%85%B3">配置开关<a class="anchor" href="#%E9%85%8D%E7%BD%AE%E5%BC%80%E5%85%B3">§</a></h3>\n<p>有一点需要注意，在 go 1.5 版本下，<code>go vendor</code> 并不是默认开启的，需要手动配置环境变量：</p>\n<pre class="language-bash"><code class="language-bash"><span class="token builtin class-name">export</span> <span class="token assign-left variable">GO15VENDOREXPERIMENT</span><span class="token operator">=</span><span class="token number">1</span>\n</code></pre>\n<p>在 go 1.6 版本中，<code>go vendor</code> 已经改为默认开启。</p>\n<h2 id="go-modules">Go Modules<a class="anchor" href="#go-modules">§</a></h2>\n<p>虽然 1.5 版本推出了 <code>go vendor</code>，但是没有解决根本问题，只是依赖的查找上支持到了 <code>vendor</code> 目录，<code>vendor</code> 目录还是需要一些第三方的库（<code>govendor</code>、<code>godep</code>、<code>glide</code>）进行管理，而且对于 <code>GOPATH</code> 环境变量依然有所依赖。</p>\n<p>官方为了解决这些问题，终于在 1.11 版本中，实验性的内置了其模块管理的能力（1.12 版本正式开启）：<code>go mod</code>。</p>\n<p>使用 <code>go mod</code> 的时候，我们无需 <code>GOPATH</code>，所以我们需要把之前配置的 <code>GOPATH</code> 清理掉，调整下目录结构，将 <code>go-story/hello/main.go</code> 直接移动到 <code>go-story/main.go</code>，然后将 <code>src</code>、<code>pkg</code> 目录删除。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment"># 初始化 go modules</span>\ngo mod init <span class="token punctuation">[</span>pkg-name<span class="token punctuation">]</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210405172840.png" alt=""></p>\n<p>此时，会在目录下生成一个 <code>go.mod</code> 文件。</p>\n<p><img src="https://file.shenfq.com/pic/20210405172955.png" alt=""></p>\n<p>查看其内容，发现里面会声明 go 的版本号，以及当前模块的名称。</p>\n<p><img src="https://file.shenfq.com/pic/20210405173448.png" alt=""></p>\n<p>然后我们安装依赖（<strong>不管是何种依赖管理的方式，安装方法依旧不变</strong>）：</p>\n<pre class="language-bash"><code class="language-bash">go get github.com/TreyBastian/colourize\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210405173658.png" alt=""></p>\n<p><code>go.mod</code> 中，会写入添加的依赖，以及版本号，同时，该模块会被安装到 GOPATH 中。由于我们之前将 GOPATH 移除，这里会安装到 GOPATH 的默认值中（<code>~/go/</code>）。</p>\n<p><img src="https://file.shenfq.com/pic/20210405173923.png" alt=""></p>\n<h3 id="%E5%AF%BC%E5%85%A5%E4%B8%8E%E5%AF%BC%E5%85%A5%E6%9C%AC%E5%9C%B0%E6%A8%A1%E5%9D%97">导入与导入本地模块<a class="anchor" href="#%E5%AF%BC%E5%85%A5%E4%B8%8E%E5%AF%BC%E5%85%A5%E6%9C%AC%E5%9C%B0%E6%A8%A1%E5%9D%97">§</a></h3>\n<p>前面介绍导入模块的方式，通过 <code>go get</code> 下载第三方模块，然后导入的方式。如果我们当前的项目中，需要进行模块的拆分，应该怎么做呢？</p>\n<p>我们可以创建一个新的 <code>utils</code> 模块，在 <code>go-story</code> 目录下新建一个 <code>utils</code> 文件夹，然后新建 <code>utils.go</code> 文件。</p>\n<p><img src="https://file.shenfq.com/pic/20210409162345.png" alt=""></p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">package</span> utils <span class="token comment">// 声明包名为 utils</span>\n\n<span class="token keyword">import</span> <span class="token string">"fmt"</span>\n\n<span class="token keyword">func</span> <span class="token function">Log</span><span class="token punctuation">(</span>msg <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Print</span><span class="token punctuation">(</span>msg<span class="token punctuation">,</span> <span class="token string">"\n"</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>然后，我们去到 <code>main.go</code> 引入该模块：</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">package</span> main\n\n<span class="token keyword">import</span> <span class="token string">"go-story/utils"</span>\n\n\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  utils<span class="token punctuation">.</span><span class="token function">Log</span><span class="token punctuation">(</span><span class="token string">"测试第三方模块"</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>我们引入模块的方式为，之前调用 <code>go mod init</code> 的时候声明的 <code>module-name</code>（<code> go-stroy</code>），然后加上模块内部声明的 <code>package-name</code>（<code>utils</code>）。</p>\n<p>这里的 <code>package-name</code> 指的是代码内的 <code>package utils</code>，不是指文件名，我们可以将 <code>utils.go</code> 重命名为 <code>index.go</code>，代码也是能正常运行的。</p>\n<p><img src="https://file.shenfq.com/pic/20210409163034.png" alt=""></p>\n<p>可以看到 <code>utils/index.go</code> 中，没有显示的 <code>export</code> 之类的语法来进行方法的暴露。实际上，go 中只要是大写开头的方法就可以被外部调用。</p>\n<pre class="language-go"><code class="language-go"><span class="token comment">// utils/index.go</span>\n<span class="token keyword">package</span> utils\n<span class="token keyword">import</span> <span class="token string">"fmt"</span>\n\n<span class="token keyword">func</span> <span class="token function">log</span><span class="token punctuation">(</span>msg <span class="token builtin">string</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Print</span><span class="token punctuation">(</span>msg<span class="token punctuation">,</span> <span class="token string">"\n"</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<pre class="language-go"><code class="language-go"><span class="token comment">// main.go</span>\n<span class="token keyword">package</span> main\n<span class="token keyword">import</span> <span class="token string">"go-story/utils"</span>\n\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  utils<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"测试第三方模块"</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>如果将方法改为小写，会调用失败。</p>\n<p><img src="https://file.shenfq.com/pic/20210409163419.png" alt=""></p>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>之前开发 node 的过程中，也踩过很多 npm 的坑，而且社区对 npm 也有很多怨言，也出现了很多第三方的模块：<code>yarn</code>、<code>pnpm</code> 等等。</p>\n<p>想不到 go 的模块管理，也是一部血泪史，现在下载一些 go 的老项目还会发现一些 <code>go vendor</code> 管理方式的项目。另外，<code>go mod</code> 出现后，go 官方也在计划移除 <code>GOPATH</code>。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -44,7 +43,7 @@ export default {
         "张家喜"
     ],
     'date': "2021/04/05",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "前言 在很久很久以前，就 push 自己学过 go 语言，但是之前只是看了一下基础语法就放弃了，实在是工作当中没有应用场景。最近发现基于 go 写的 esbuild 异军突起，想要深入研究下它的奥秘，发现看不懂。于是，打算先从 go 开始...",
     'cover': "https://file.shenfq.com/pic/20210405193808.png",
     'categories': [
@@ -62,7 +61,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -82,7 +81,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -105,7 +104,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -127,7 +126,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -147,7 +146,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -167,7 +166,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -188,7 +187,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -208,7 +207,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -229,7 +228,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -249,7 +248,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -270,7 +269,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -290,7 +289,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -311,7 +310,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -334,7 +333,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -354,7 +353,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -374,7 +373,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -397,7 +396,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -418,7 +417,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -440,7 +439,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -462,7 +461,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -483,7 +482,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -504,7 +503,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -526,7 +525,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -548,7 +547,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -569,7 +568,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -590,7 +589,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -611,7 +610,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -632,7 +631,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -653,7 +652,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -674,7 +673,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -696,7 +695,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -719,7 +718,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -740,7 +739,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -762,7 +761,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -781,7 +780,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -803,7 +802,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -824,7 +823,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -846,7 +845,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -866,7 +865,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -887,7 +886,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -910,7 +909,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -934,7 +933,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -957,7 +956,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -976,7 +975,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -995,7 +994,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1019,7 +1018,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1040,7 +1039,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1063,7 +1062,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1084,7 +1083,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1104,7 +1103,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1126,7 +1125,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1147,7 +1146,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1168,7 +1167,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1191,7 +1190,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1213,7 +1212,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1234,7 +1233,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1254,7 +1253,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1275,7 +1274,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1296,7 +1295,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1317,7 +1316,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1339,7 +1338,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1359,7 +1358,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1379,7 +1378,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1400,7 +1399,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1421,7 +1420,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1441,7 +1440,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1462,7 +1461,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1483,7 +1482,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1504,7 +1503,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

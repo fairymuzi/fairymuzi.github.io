@@ -9,7 +9,6 @@ export default {
             __html: '<h1>小程序依赖分析</h1>\n<p>用过 webpack 的同学肯定知道 <code>webpack-bundle-analyzer</code> ，可以用来分析当前项目 js 文件的依赖关系。</p>\n<p><img src="https://file.shenfq.com/pic/20201030230741.png" alt="webpack-bundle-analyzer"></p>\n<p>因为最近一直在做小程序业务，而且小程序对包体大小特别敏感，所以就想着能不能做一个类似的工具，用来查看当前小程序各个主包与分包之间的依赖关系。经过几天的折腾终于做出来了，效果如下：</p>\n<p><img src="https://file.shenfq.com/pic/20201103115231.png" alt="小程序依赖关系"></p>\n<p>今天的文章就带大家来实现这个工具。</p>\n<h2 id="%E5%B0%8F%E7%A8%8B%E5%BA%8F%E5%85%A5%E5%8F%A3">小程序入口<a class="anchor" href="#%E5%B0%8F%E7%A8%8B%E5%BA%8F%E5%85%A5%E5%8F%A3">§</a></h2>\n<p>小程序的页面通过 <code>app.json</code> 的 <code>pages</code> 参数定义，用于指定小程序由哪些页面组成，每一项都对应一个页面的路径（含文件名） 信息。 <code>pages</code> 内的每个页面，小程序都会去寻找对应的 <code>json</code>, <code>js</code>, <code>wxml</code>, <code>wxss</code> 四个文件进行处理。</p>\n<p>如开发目录为：</p>\n<pre class="language-autoit"><code class="language-autoit">├── app<span class="token punctuation">.</span>js\n├── app<span class="token punctuation">.</span>json\n├── app<span class="token punctuation">.</span>wxss\n├── pages\n│   │── index\n│   │   ├── index<span class="token punctuation">.</span>wxml\n│   │   ├── index<span class="token punctuation">.</span>js\n│   │   ├── index<span class="token punctuation">.</span>json\n│   │   └── index<span class="token punctuation">.</span>wxss\n│   └── logs\n│       ├── logs<span class="token punctuation">.</span>wxml\n│       └── logs<span class="token punctuation">.</span>js\n└── utils\n</code></pre>\n<p>则需要在 app.json 中写：</p>\n<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>\n  <span class="token property">"pages"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"pages/index/index"</span><span class="token punctuation">,</span> <span class="token string">"pages/logs/logs"</span><span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>为了方便演示，我们先 fork 一份小程序的官方demo，然后新建一个文件 <code>depend.js</code>，依赖分析相关的工作就在这个文件里面实现。</p>\n<pre class="language-bash"><code class="language-bash">$ <span class="token function">git</span> clone <a class="token email-link" href="mailto:git@github.com">git@github.com</a>:wechat-miniprogram/miniprogram-demo.git\n$ <span class="token builtin class-name">cd</span> miniprogram-demo\n$ <span class="token function">touch</span> depend.js\n</code></pre>\n<p>其大致的目录结构如下：</p>\n<p><img src="https://file.shenfq.com/pic/20201031202105.png" alt="目录结构"></p>\n<p>以 <code>app.json</code> 为入口，我们可以获取所有主包下的页面。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> fs <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'fs-extra\'</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> path <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'path\'</span><span class="token punctuation">)</span>\n\n<span class="token keyword">const</span> root <span class="token operator">=</span> process<span class="token punctuation">.</span><span class="token method function property-access">cwd</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n\n<span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token function">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">context</span> <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>root<span class="token punctuation">,</span> <span class="token string">\'miniprogram\'</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token comment">// 获取绝对地址</span>\n  <span class="token function">getAbsolute</span><span class="token punctuation">(</span><span class="token parameter">file</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">context</span><span class="token punctuation">,</span> file<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">run</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> appPath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getAbsolute</span><span class="token punctuation">(</span><span class="token string">\'app.json\'</span><span class="token punctuation">)</span>\n    <span class="token keyword">const</span> appJson <span class="token operator">=</span> fs<span class="token punctuation">.</span><span class="token method function property-access">readJsonSync</span><span class="token punctuation">(</span>appPath<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> <span class="token punctuation">{</span> pages <span class="token punctuation">}</span> <span class="token operator">=</span> appJson <span class="token comment">// 主包的所有页面</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>每个页面会对应 <code>json</code>, <code>js</code>, <code>wxml</code>, <code>wxss</code> 四个文件：</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> <span class="token maybe-class-name">Extends</span> <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">\'.js\'</span><span class="token punctuation">,</span> <span class="token string">\'.json\'</span><span class="token punctuation">,</span> <span class="token string">\'.wxml\'</span><span class="token punctuation">,</span> <span class="token string">\'.wxss\'</span><span class="token punctuation">]</span>\n<span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token function">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 存储文件</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span> <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Set</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">context</span> <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>root<span class="token punctuation">,</span> <span class="token string">\'miniprogram\'</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token comment">// 修改文件后缀</span>\n  <span class="token function">replaceExt</span><span class="token punctuation">(</span>filePath<span class="token punctuation">,</span> ext <span class="token operator">=</span> <span class="token string">\'\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> dirName <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">dirname</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> extName <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">extname</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> fileName <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">basename</span><span class="token punctuation">(</span>filePath<span class="token punctuation">,</span> extName<span class="token punctuation">)</span>\n    <span class="token keyword control-flow">return</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>dirName<span class="token punctuation">,</span> fileName <span class="token operator">+</span> ext<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">run</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 省略获取 pages 过程</span>\n    pages<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">page</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token comment">// 获取绝对地址</span>\n      <span class="token keyword">const</span> absPath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getAbsolute</span><span class="token punctuation">(</span>page<span class="token punctuation">)</span>\n      <span class="token maybe-class-name">Extends</span><span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">ext</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        <span class="token comment">// 每个页面都需要判断 js、json、wxml、wxss 是否存在</span>\n        <span class="token keyword">const</span> filePath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">replaceExt</span><span class="token punctuation">(</span>absPath<span class="token punctuation">,</span> ext<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span><span class="token punctuation">.</span><span class="token method function property-access">add</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>现在 pages 内页面相关的文件都放到 files 字段存起来了。</p>\n<h2 id="%E6%9E%84%E9%80%A0%E6%A0%91%E5%BD%A2%E7%BB%93%E6%9E%84">构造树形结构<a class="anchor" href="#%E6%9E%84%E9%80%A0%E6%A0%91%E5%BD%A2%E7%BB%93%E6%9E%84">§</a></h2>\n<p>拿到文件后，我们需要依据各个文件构造一个树形结构的文件树，用于后续展示依赖关系。</p>\n<p>假设我们有一个 <code>pages</code> 目录，<code>pages</code> 目录下有两个页面：<code>detail</code>、<code>index</code> ，这两个 页面文件夹下有四个对应的文件。</p>\n<pre class="language-bash"><code class="language-bash">pages\n├── detail\n│   ├── detail.js\n│   ├── detail.json\n│   ├── detail.wxml\n│   └── detail.wxss\n└── index\n    ├── index.js\n    ├── index.json\n    ├── index.wxml\n    └── index.wxss\n</code></pre>\n<p>依据上面的目录结构，我们构造一个如下的文件树结构，<code>size</code> 用于表示当前文件或文件夹的大小，<code>children</code> 存放文件夹下的文件，如果是文件则没有 <code>children</code> 属性。</p>\n<pre class="language-js"><code class="language-js">pages <span class="token operator">=</span> <span class="token punctuation">{</span>\n  <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">8</span><span class="token punctuation">,</span>\n  <span class="token string">"children"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n    <span class="token string">"detail"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n      <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">4</span><span class="token punctuation">,</span>\n      <span class="token string">"children"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n        <span class="token string">"detail.js"</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        <span class="token string">"detail.json"</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        <span class="token string">"detail.wxml"</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        <span class="token string">"detail.wxss"</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    <span class="token string">"index"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n      <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">4</span><span class="token punctuation">,</span>\n      <span class="token string">"children"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n        <span class="token string">"index.js"</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        <span class="token string">"index.json"</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        <span class="token string">"index.wxml"</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>\n        <span class="token string">"index.wxss"</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token string">"size"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>我们先在构造函数构造一个 <code>tree</code> 字段用来存储文件树的数据，然后我们将每个文件都传入 <code>addToTree</code> 方法，将文件添加到树中 。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token function">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tree</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n      size<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n      children<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span> <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Set</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">context</span> <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>root<span class="token punctuation">,</span> <span class="token string">\'miniprogram\'</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  \n  <span class="token function">run</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 省略获取 pages 过程</span>\n    pages<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">page</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token keyword">const</span> absPath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getAbsolute</span><span class="token punctuation">(</span>page<span class="token punctuation">)</span>\n      <span class="token maybe-class-name">Extends</span><span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">ext</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        <span class="token keyword">const</span> filePath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">replaceExt</span><span class="token punctuation">(</span>absPath<span class="token punctuation">,</span> ext<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          <span class="token comment">// 调用 addToTree</span>\n          <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">addToTree</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>接下来实现 <code>addToTree</code> 方法：</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 省略之前的部分代码</span>\n\n  <span class="token comment">// 获取相对地址</span>\n  <span class="token function">getRelative</span><span class="token punctuation">(</span><span class="token parameter">file</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> path<span class="token punctuation">.</span><span class="token method function property-access">relative</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">context</span><span class="token punctuation">,</span> file<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token comment">// 获取文件大小，单位 KB</span>\n  <span class="token function">getSize</span><span class="token punctuation">(</span><span class="token parameter">file</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> stats <span class="token operator">=</span> fs<span class="token punctuation">.</span><span class="token method function property-access">statSync</span><span class="token punctuation">(</span>file<span class="token punctuation">)</span>\n    <span class="token keyword control-flow">return</span> stats<span class="token punctuation">.</span><span class="token property-access">size</span> <span class="token operator">/</span> <span class="token number">1024</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 将文件添加到树中</span>\n  <span class="token function">addToTree</span><span class="token punctuation">(</span><span class="token parameter">filePath</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span><span class="token punctuation">.</span><span class="token method function property-access">has</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 如果该文件已经添加过，则不再添加到文件树中</span>\n      <span class="token keyword control-flow">return</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword">const</span> size <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getSize</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> relPath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getRelative</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    <span class="token comment">// 将文件路径转化成数组</span>\n    <span class="token comment">// \'pages/index/index.js\' =></span>\n    <span class="token comment">// [\'pages\', \'index\', \'index.js\']</span>\n    <span class="token keyword">const</span> names <span class="token operator">=</span> relPath<span class="token punctuation">.</span><span class="token method function property-access">split</span><span class="token punctuation">(</span>path<span class="token punctuation">.</span><span class="token property-access">sep</span><span class="token punctuation">)</span>\n    <span class="token keyword">const</span> lastIdx <span class="token operator">=</span> names<span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">-</span> <span class="token number">1</span>\n\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tree</span><span class="token punctuation">.</span><span class="token property-access">size</span> <span class="token operator">+=</span> size\n    <span class="token keyword">let</span> point <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tree</span><span class="token punctuation">.</span><span class="token property-access">children</span>\n    names<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">name<span class="token punctuation">,</span> idx</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>idx <span class="token operator">===</span> lastIdx<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        point<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span> size <span class="token punctuation">}</span>\n        <span class="token keyword control-flow">return</span>\n      <span class="token punctuation">}</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>point<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        point<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n          size<span class="token punctuation">,</span> children<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n        point<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token property-access">size</span> <span class="token operator">+=</span> size\n      <span class="token punctuation">}</span>\n      point <span class="token operator">=</span> point<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token property-access">children</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token comment">// 将文件添加的 files</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span><span class="token punctuation">.</span><span class="token method function property-access">add</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>我们可以在运行之后，将文件输出到 <code>tree.json</code> 看看。</p>\n<pre class="language-js"><code class="language-js"> <span class="token function">run</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n   <span class="token comment">// ...</span>\n   pages<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">page</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n     <span class="token comment">//...</span>\n   <span class="token punctuation">}</span><span class="token punctuation">)</span>\n   fs<span class="token punctuation">.</span><span class="token method function property-access">writeJSONSync</span><span class="token punctuation">(</span><span class="token string">\'tree.json\'</span><span class="token punctuation">,</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tree</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> spaces<span class="token operator">:</span> <span class="token number">2</span> <span class="token punctuation">}</span><span class="token punctuation">)</span>\n <span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20201031232716.png" alt="tree.json"></p>\n<h2 id="%E8%8E%B7%E5%8F%96%E4%BE%9D%E8%B5%96%E5%85%B3%E7%B3%BB">获取依赖关系<a class="anchor" href="#%E8%8E%B7%E5%8F%96%E4%BE%9D%E8%B5%96%E5%85%B3%E7%B3%BB">§</a></h2>\n<p>上面的步骤看起来没什么问题，但是我们缺少了重要的一环，那就是我们在构造文件树之前，还需要得到每个文件的依赖项，这样输出的才是小程序完整的文件树。文件的依赖关系需要分成四部分来讲，分别是  <code>js</code>, <code>json</code>, <code>wxml</code>, <code>wxss</code>  这四种类型文件获取依赖的方式。</p>\n<h3 id="%E8%8E%B7%E5%8F%96-js-%E6%96%87%E4%BB%B6%E4%BE%9D%E8%B5%96">获取 .js 文件依赖<a class="anchor" href="#%E8%8E%B7%E5%8F%96-js-%E6%96%87%E4%BB%B6%E4%BE%9D%E8%B5%96">§</a></h3>\n<p>小程序支持 CommonJS 的方式进行模块化，如果开启了 es6，也能支持 ESM 进行模块化。我们如果要获得一个 <code>js</code> 文件的依赖，首先要明确，js 文件导入模块的三种写法，针对下面三种语法，我们可以引入 Babel 来获取依赖。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">import</span> <span class="token imports">a</span> <span class="token keyword module">from</span> <span class="token string">\'./a.js\'</span>\n<span class="token keyword module">export</span> b <span class="token keyword module">from</span> <span class="token string">\'./b.js\'</span>\n<span class="token keyword">const</span> c <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'./c.js\'</span><span class="token punctuation">)</span>\n</code></pre>\n<p>通过 <code>@babel/parser</code> 将代码转化为 AST，然后通过 <code>@babel/traverse</code> 遍历 AST 节点，获取上面三种导入方式的值，放到数组。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> <span class="token punctuation">{</span> parse <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'@babel/parser\'</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> <span class="token punctuation">{</span> <span class="token keyword module">default</span><span class="token operator">:</span> traverse <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'@babel/traverse\'</span><span class="token punctuation">)</span>\n\n<span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token comment">// ...</span>\n  <span class="token function">jsDeps</span><span class="token punctuation">(</span><span class="token parameter">file</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> deps <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n    <span class="token keyword">const</span> dirName <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">dirname</span><span class="token punctuation">(</span>file<span class="token punctuation">)</span>\n    <span class="token comment">// 读取 js 文件内容</span>\n    <span class="token keyword">const</span> content <span class="token operator">=</span> fs<span class="token punctuation">.</span><span class="token method function property-access">readFileSync</span><span class="token punctuation">(</span>file<span class="token punctuation">,</span> <span class="token string">\'utf-8\'</span><span class="token punctuation">)</span>\n    <span class="token comment">// 将代码转化为 AST</span>\n    <span class="token keyword">const</span> ast <span class="token operator">=</span> <span class="token function">parse</span><span class="token punctuation">(</span>content<span class="token punctuation">,</span> <span class="token punctuation">{</span>\n      sourceType<span class="token operator">:</span> <span class="token string">\'module\'</span><span class="token punctuation">,</span>\n      plugins<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">\'exportDefaultFrom\'</span><span class="token punctuation">]</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token comment">// 遍历 AST</span>\n    <span class="token function">traverse</span><span class="token punctuation">(</span>ast<span class="token punctuation">,</span> <span class="token punctuation">{</span>\n      <span class="token function-variable function"><span class="token maybe-class-name">ImportDeclaration</span></span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> node <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        <span class="token comment">// 获取 import from 地址</span>\n        <span class="token keyword">const</span> <span class="token punctuation">{</span> value <span class="token punctuation">}</span> <span class="token operator">=</span> node<span class="token punctuation">.</span><span class="token property-access">source</span>\n        <span class="token keyword">const</span> jsFile <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">transformScript</span><span class="token punctuation">(</span>dirName<span class="token punctuation">,</span> value<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>jsFile<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          deps<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>jsFile<span class="token punctuation">)</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span><span class="token punctuation">,</span>\n      <span class="token function-variable function"><span class="token maybe-class-name">ExportNamedDeclaration</span></span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> node <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        <span class="token comment">// 获取 export from 地址</span>\n        <span class="token keyword">const</span> <span class="token punctuation">{</span> value <span class="token punctuation">}</span> <span class="token operator">=</span> node<span class="token punctuation">.</span><span class="token property-access">source</span>\n        <span class="token keyword">const</span> jsFile <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">transformScript</span><span class="token punctuation">(</span>dirName<span class="token punctuation">,</span> value<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>jsFile<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          deps<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>jsFile<span class="token punctuation">)</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span><span class="token punctuation">,</span>\n      <span class="token function-variable function"><span class="token maybe-class-name">CallExpression</span></span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> node <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>\n          <span class="token punctuation">(</span>node<span class="token punctuation">.</span><span class="token property-access">callee</span><span class="token punctuation">.</span><span class="token property-access">name</span> <span class="token operator">&amp;&amp;</span> node<span class="token punctuation">.</span><span class="token property-access">callee</span><span class="token punctuation">.</span><span class="token property-access">name</span> <span class="token operator">===</span> <span class="token string">\'require\'</span><span class="token punctuation">)</span> <span class="token operator">&amp;&amp;</span>\n          node<span class="token punctuation">.</span><span class="token property-access">arguments</span><span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">>=</span> <span class="token number">1</span>\n        <span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          <span class="token comment">// 获取 require 地址</span>\n          <span class="token keyword">const</span> <span class="token punctuation">[</span><span class="token punctuation">{</span> value <span class="token punctuation">}</span><span class="token punctuation">]</span> <span class="token operator">=</span> node<span class="token punctuation">.</span><span class="token property-access">arguments</span>\n          <span class="token keyword">const</span> jsFile <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">transformScript</span><span class="token punctuation">(</span>dirName<span class="token punctuation">,</span> value<span class="token punctuation">)</span>\n          <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>jsFile<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n            deps<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>jsFile<span class="token punctuation">)</span>\n          <span class="token punctuation">}</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">return</span> deps\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>在获取依赖模块的路径后，还不能立即将路径添加到依赖数组内，因为根据模块语法 <code>js</code> 后缀是可以省略的，另外 require 的路径是一个文件夹的时候，默认会导入该文件夹下的 <code>index.js</code> 。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 获取某个路径的脚本文件</span>\n  <span class="token function">transformScript</span><span class="token punctuation">(</span><span class="token parameter">url</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> ext <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">extname</span><span class="token punctuation">(</span>url<span class="token punctuation">)</span>\n    <span class="token comment">// 如果存在后缀，表示当前已经是一个文件</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>ext <span class="token operator">===</span> <span class="token string">\'.js\'</span> <span class="token operator">&amp;&amp;</span> fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>url<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">return</span> url\n    <span class="token punctuation">}</span>\n    <span class="token comment">// a/b/c => a/b/c.js</span>\n    <span class="token keyword">const</span> jsFile <span class="token operator">=</span> url <span class="token operator">+</span> <span class="token string">\'.js\'</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>jsFile<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">return</span> jsFile\n    <span class="token punctuation">}</span>\n    <span class="token comment">// a/b/c => a/b/c/index.js</span>\n    <span class="token keyword">const</span> jsIndexFile <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>url<span class="token punctuation">,</span> <span class="token string">\'index.js\'</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>jsIndexFile<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">return</span> jsIndexFile\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">return</span> <span class="token keyword null nil">null</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">jsDeps</span><span class="token punctuation">(</span><span class="token parameter">file</span><span class="token punctuation">)</span> <span class="token punctuation">{</span><span class="token spread operator">...</span><span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>我们可以创建一个 <code>js</code>，看看输出的 <code>deps</code> 是否正确：</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// 文件路径：/Users/shenfq/Code/fork/miniprogram-demo/</span>\n<span class="token keyword module">import</span> <span class="token imports">a</span> <span class="token keyword module">from</span> <span class="token string">\'./a.js\'</span>\n<span class="token keyword module">export</span> b <span class="token keyword module">from</span> <span class="token string">\'../b.js\'</span>\n<span class="token keyword">const</span> c <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'../../c.js\'</span><span class="token punctuation">)</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20201101134549.png" alt="image-20201101134549678"></p>\n<h3 id="%E8%8E%B7%E5%8F%96-json-%E6%96%87%E4%BB%B6%E4%BE%9D%E8%B5%96">获取 .json 文件依赖<a class="anchor" href="#%E8%8E%B7%E5%8F%96-json-%E6%96%87%E4%BB%B6%E4%BE%9D%E8%B5%96">§</a></h3>\n<p><code>json</code> 文件本身是不支持模块化的，但是小程序可以通过 <code>json</code> 文件导入自定义组件，只需要在页面的 <code>json</code> 文件通过 <code>usingComponents</code> 进行引用声明。<code>usingComponents</code> 为一个对象，键为自定义组件的标签名，值为自定义组件文件路径：</p>\n<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>\n  <span class="token property">"usingComponents"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n    <span class="token property">"component-tag-name"</span><span class="token operator">:</span> <span class="token string">"path/to/the/custom/component"</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>自定义组件与小程序页面一样，也会对应四个文件，所以我们需要获取 <code>json</code> 中 <code>usingComponents</code> 内的所有依赖项，并判断每个组件对应的那四个文件是否存在，然后添加到依赖项内。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token comment">// ...</span>\n  <span class="token function">jsonDeps</span><span class="token punctuation">(</span><span class="token parameter">file</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> deps <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n    <span class="token keyword">const</span> dirName <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">dirname</span><span class="token punctuation">(</span>file<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> <span class="token punctuation">{</span> usingComponents <span class="token punctuation">}</span> <span class="token operator">=</span> fs<span class="token punctuation">.</span><span class="token method function property-access">readJsonSync</span><span class="token punctuation">(</span>file<span class="token punctuation">)</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>usingComponents <span class="token operator">&amp;&amp;</span> <span class="token keyword">typeof</span> usingComponents <span class="token operator">===</span> <span class="token string">\'object\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token method function property-access">values</span><span class="token punctuation">(</span>usingComponents<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">component</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        component <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span>dirName<span class="token punctuation">,</span> component<span class="token punctuation">)</span>\n        <span class="token comment">// 每个组件都需要判断 js/json/wxml/wxss 文件是否存在</span>\n        <span class="token maybe-class-name">Extends</span><span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">ext</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n          <span class="token keyword">const</span> file <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">replaceExt</span><span class="token punctuation">(</span>component<span class="token punctuation">,</span> ext<span class="token punctuation">)</span>\n          <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>file<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n            deps<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>file<span class="token punctuation">)</span>\n          <span class="token punctuation">}</span>\n        <span class="token punctuation">}</span><span class="token punctuation">)</span>\n      <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">return</span> deps\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E8%8E%B7%E5%8F%96-wxml-%E6%96%87%E4%BB%B6%E4%BE%9D%E8%B5%96">获取 .wxml 文件依赖<a class="anchor" href="#%E8%8E%B7%E5%8F%96-wxml-%E6%96%87%E4%BB%B6%E4%BE%9D%E8%B5%96">§</a></h3>\n<p>wxml 提供两种文件引用方式 <code>import</code> 和 <code>include</code>。</p>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>import</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>a.wxml<span class="token punctuation">"</span></span><span class="token punctuation">/></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>include</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>b.wxml<span class="token punctuation">"</span></span><span class="token punctuation">/></span></span>\n</code></pre>\n<p>wxml 文件本质上还是一个 html 文件，所以可以通过 html parser 对 wxml 文件进行解析，关于 html parser 相关的原理可以看我之前写过的文章  <a href="https://blog.shenfq.com/2020/vue-%E6%A8%A1%E6%9D%BF%E7%BC%96%E8%AF%91%E5%8E%9F%E7%90%86/">《Vue 模板编译原理》</a>。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> htmlparser2 <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'htmlparser2\'</span><span class="token punctuation">)</span>\n\n<span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token comment">// ...</span>\n  <span class="token function">wxmlDeps</span><span class="token punctuation">(</span><span class="token parameter">file</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> deps <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n    <span class="token keyword">const</span> dirName <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">dirname</span><span class="token punctuation">(</span>file<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> content <span class="token operator">=</span> fs<span class="token punctuation">.</span><span class="token method function property-access">readFileSync</span><span class="token punctuation">(</span>file<span class="token punctuation">,</span> <span class="token string">\'utf-8\'</span><span class="token punctuation">)</span>\n    <span class="token keyword">const</span> htmlParser <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">htmlparser2<span class="token punctuation">.</span>Parser</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n      <span class="token function">onopentag</span><span class="token punctuation">(</span><span class="token parameter">name<span class="token punctuation">,</span> attribs <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>name <span class="token operator">!==</span> <span class="token string">\'import\'</span> <span class="token operator">&amp;&amp;</span> name <span class="token operator">!==</span> <span class="token string">\'include\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          <span class="token keyword control-flow">return</span>\n        <span class="token punctuation">}</span>\n        <span class="token keyword">const</span> <span class="token punctuation">{</span> src <span class="token punctuation">}</span> <span class="token operator">=</span> attribs\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>src<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          <span class="token keyword control-flow">return</span>\n        <span class="token punctuation">}</span>\n        <span class="token keyword">const</span> wxmlFile <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span>dirName<span class="token punctuation">,</span> src<span class="token punctuation">)</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>wxmlFile<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          deps<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>wxmlFile<span class="token punctuation">)</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    htmlParser<span class="token punctuation">.</span><span class="token method function property-access">write</span><span class="token punctuation">(</span>content<span class="token punctuation">)</span>\n    htmlParser<span class="token punctuation">.</span><span class="token method function property-access">end</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">return</span> deps\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E8%8E%B7%E5%8F%96-wxss-%E6%96%87%E4%BB%B6%E4%BE%9D%E8%B5%96">获取 .wxss 文件依赖<a class="anchor" href="#%E8%8E%B7%E5%8F%96-wxss-%E6%96%87%E4%BB%B6%E4%BE%9D%E8%B5%96">§</a></h3>\n<p>最后 wxss 文件导入样式和 css 语法一致，使用 <code>@import</code> 语句可以导入外联样式表。</p>\n<pre class="language-css"><code class="language-css"><span class="token atrule"><span class="token rule">@import</span> <span class="token string">"common.wxss"</span><span class="token punctuation">;</span></span>\n</code></pre>\n<p>可以通过 <code>postcss</code> 解析 wxss 文件，然后获取导入文件的地址，但是这里我们偷个懒，直接通过简单的正则匹配来做。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token comment">// ...</span>\n  <span class="token function">wxssDeps</span><span class="token punctuation">(</span><span class="token parameter">file</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> deps <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n    <span class="token keyword">const</span> dirName <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">dirname</span><span class="token punctuation">(</span>file<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> content <span class="token operator">=</span> fs<span class="token punctuation">.</span><span class="token method function property-access">readFileSync</span><span class="token punctuation">(</span>file<span class="token punctuation">,</span> <span class="token string">\'utf-8\'</span><span class="token punctuation">)</span>\n    <span class="token keyword">const</span> importRegExp <span class="token operator">=</span> <span class="token regex"><span class="token regex-delimiter">/</span><span class="token regex-source language-regex">@import\s*[\'"](.+)[\'"];*</span><span class="token regex-delimiter">/</span><span class="token regex-flags">g</span></span>\n    <span class="token keyword">let</span> matched\n    <span class="token keyword control-flow">while</span> <span class="token punctuation">(</span><span class="token punctuation">(</span>matched <span class="token operator">=</span> importRegExp<span class="token punctuation">.</span><span class="token method function property-access">exec</span><span class="token punctuation">(</span>content<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">!==</span> <span class="token keyword null nil">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>matched<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token keyword control-flow">continue</span>\n      <span class="token punctuation">}</span>\n      <span class="token keyword">const</span> wxssFile <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span>dirName<span class="token punctuation">,</span> matched<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>wxmlFile<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        deps<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>wxssFile<span class="token punctuation">)</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">return</span> deps\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E5%B0%86%E4%BE%9D%E8%B5%96%E6%B7%BB%E5%8A%A0%E5%88%B0%E6%A0%91%E7%BB%93%E6%9E%84%E4%B8%AD">将依赖添加到树结构中<a class="anchor" href="#%E5%B0%86%E4%BE%9D%E8%B5%96%E6%B7%BB%E5%8A%A0%E5%88%B0%E6%A0%91%E7%BB%93%E6%9E%84%E4%B8%AD">§</a></h3>\n<p>现在我们需要修改 <code>addToTree</code> 方法。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token function">getDeps</span><span class="token punctuation">(</span><span class="token parameter">filePath</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> ext <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">extname</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">slice</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">[</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>ext<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">Deps</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">return</span> <span class="token keyword">this</span><span class="token punctuation">[</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>ext<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">Deps</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">]</span><span class="token punctuation">(</span>filepath<span class="token punctuation">)</span>\n    <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">return</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">addToTree</span><span class="token punctuation">(</span><span class="token parameter">filePath</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 如果该文件已经添加过，则不再添加到文件树中</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span><span class="token punctuation">.</span><span class="token method function property-access">has</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">return</span>\n    <span class="token punctuation">}</span>\n\n    <span class="token keyword">const</span> relPath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getRelative</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> names <span class="token operator">=</span> relPath<span class="token punctuation">.</span><span class="token method function property-access">split</span><span class="token punctuation">(</span>path<span class="token punctuation">.</span><span class="token property-access">sep</span><span class="token punctuation">)</span>\n    names<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">name<span class="token punctuation">,</span> idx</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token comment">// ... 添加到树中</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span><span class="token punctuation">.</span><span class="token method function property-access">add</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n\n    <span class="token comment">// ===== 获取文件依赖，并添加到树中 =====</span>\n    <span class="token keyword">const</span> deps <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getDeps</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    deps<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">dep</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">addToTree</span><span class="token punctuation">(</span>dep<span class="token punctuation">)</span>      \n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20201101205623.png" alt="image-20201101205623259"></p>\n<h2 id="%E8%8E%B7%E5%8F%96%E5%88%86%E5%8C%85%E4%BE%9D%E8%B5%96">获取分包依赖<a class="anchor" href="#%E8%8E%B7%E5%8F%96%E5%88%86%E5%8C%85%E4%BE%9D%E8%B5%96">§</a></h2>\n<p>熟悉小程序的同学肯定知道，小程序提供了<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/subpackages/basic.html">分包机制</a>。使用分包后，分包内的文件会被打包成一个单独的包，在用到的时候才会加载，而其他的文件则会放在主包，小程序打开的时候就会加载。<code>subpackages</code> 中，每个分包的配置有以下几项：</p>\n<div class="table_wrapper"><table>\n<thead>\n<tr>\n<th style="text-align:left">字段</th>\n<th style="text-align:left">类型</th>\n<th style="text-align:left">说明</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td style="text-align:left">root</td>\n<td style="text-align:left">String</td>\n<td style="text-align:left">分包根目录</td>\n</tr>\n<tr>\n<td style="text-align:left">name</td>\n<td style="text-align:left">String</td>\n<td style="text-align:left">分包别名，<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/subpackages/preload.html">分包预下载</a>时可以使用</td>\n</tr>\n<tr>\n<td style="text-align:left">pages</td>\n<td style="text-align:left">StringArray</td>\n<td style="text-align:left">分包页面路径，相对与分包根目录</td>\n</tr>\n<tr>\n<td style="text-align:left">independent</td>\n<td style="text-align:left">Boolean</td>\n<td style="text-align:left">分包是否是<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/subpackages/independent.html">独立分包</a></td>\n</tr>\n</tbody>\n</table></div>\n<p>所以我们在运行的时候，除了要拿到 <code>pages</code> 下的所有页面，还需拿到 <code>subpackages</code> 中所有的页面。由于之前只关心主包的内容，<code>this.tree</code> 下面只有一颗文件树，现在我们需要在 <code>this.tree</code> 下挂载多颗文件树，我们需要先为主包创建一个单独的文件树，然后为每个分包创建一个文件树。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token function">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tree</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span> <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Set</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">context</span> <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>root<span class="token punctuation">,</span> <span class="token string">\'miniprogram\'</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">createTree</span><span class="token punctuation">(</span><span class="token parameter">pkg</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tree</span><span class="token punctuation">[</span>pkg<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n      size<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span>\n      children<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">addPage</span><span class="token punctuation">(</span><span class="token parameter">page<span class="token punctuation">,</span> pkg</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> absPath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getAbsolute</span><span class="token punctuation">(</span>page<span class="token punctuation">)</span>\n    <span class="token maybe-class-name">Extends</span><span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">ext</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token keyword">const</span> filePath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">replaceExt</span><span class="token punctuation">(</span>absPath<span class="token punctuation">,</span> ext<span class="token punctuation">)</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>fs<span class="token punctuation">.</span><span class="token method function property-access">existsSync</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">addToTree</span><span class="token punctuation">(</span>filePath<span class="token punctuation">,</span> pkg<span class="token punctuation">)</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">run</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> appPath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getAbsolute</span><span class="token punctuation">(</span><span class="token string">\'app.json\'</span><span class="token punctuation">)</span>\n    <span class="token keyword">const</span> appJson <span class="token operator">=</span> fs<span class="token punctuation">.</span><span class="token method function property-access">readJsonSync</span><span class="token punctuation">(</span>appPath<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> <span class="token punctuation">{</span> pages<span class="token punctuation">,</span> subPackages<span class="token punctuation">,</span> subpackages <span class="token punctuation">}</span> <span class="token operator">=</span> appJson\n    \n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">createTree</span><span class="token punctuation">(</span><span class="token string">\'main\'</span><span class="token punctuation">)</span> <span class="token comment">// 为主包创建文件树</span>\n    pages<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">page</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">addPage</span><span class="token punctuation">(</span>page<span class="token punctuation">,</span> <span class="token string">\'main\'</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token comment">// 由于 app.json 中 subPackages、subpackages 都能生效</span>\n    <span class="token comment">// 所以我们两个属性都获取，哪个存在就用哪个</span>\n    <span class="token keyword">const</span> subPkgs <span class="token operator">=</span> subPackages <span class="token operator">||</span> subpackages\n    <span class="token comment">// 分包存在的时候才进行遍历</span>\n    subPkgs <span class="token operator">&amp;&amp;</span> subPkgs<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> root<span class="token punctuation">,</span> pages <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      root <span class="token operator">=</span> root<span class="token punctuation">.</span><span class="token method function property-access">split</span><span class="token punctuation">(</span><span class="token string">\'/\'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>path<span class="token punctuation">.</span><span class="token property-access">sep</span><span class="token punctuation">)</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">createTree</span><span class="token punctuation">(</span>root<span class="token punctuation">)</span> <span class="token comment">// 为分包创建文件树</span>\n      pages<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">page</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n        <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">addPage</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>root<span class="token interpolation-punctuation punctuation">}</span></span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>path<span class="token punctuation">.</span><span class="token property-access">sep</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>page<span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span><span class="token punctuation">,</span> pkg<span class="token punctuation">)</span>\n      <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token comment">// 输出文件树</span>\n    fs<span class="token punctuation">.</span><span class="token method function property-access">writeJSONSync</span><span class="token punctuation">(</span><span class="token string">\'tree.json\'</span><span class="token punctuation">,</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tree</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> spaces<span class="token operator">:</span> <span class="token number">2</span> <span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><code>addToTree</code> 方法也需要进行修改，根据传入的 <code>pkg</code> 来判断将当前文件添加到哪个树。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">class</span> <span class="token class-name">Depend</span> <span class="token punctuation">{</span>\n  <span class="token function">addToTree</span><span class="token punctuation">(</span>filePath<span class="token punctuation">,</span> pkg <span class="token operator">=</span> <span class="token string">\'main\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span><span class="token punctuation">.</span><span class="token method function property-access">has</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 如果该文件已经添加过，则不再添加到文件树中</span>\n      <span class="token keyword control-flow">return</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword">let</span> relPath <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getRelative</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>pkg <span class="token operator">!==</span> <span class="token string">\'main\'</span> <span class="token operator">&amp;&amp;</span> relPath<span class="token punctuation">.</span><span class="token method function property-access">indexOf</span><span class="token punctuation">(</span>pkg<span class="token punctuation">)</span> <span class="token operator">!==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 如果该文件不是以分包名开头，证明该文件不在分包内，</span>\n      <span class="token comment">// 需要将文件添加到主包的文件树内</span>\n      pkg <span class="token operator">=</span> <span class="token string">\'main\'</span>\n    <span class="token punctuation">}</span>\n\n    <span class="token keyword">const</span> tree <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">tree</span><span class="token punctuation">[</span>pkg<span class="token punctuation">]</span> <span class="token comment">// 依据 pkg 取到对应的树</span>\n    <span class="token keyword">const</span> size <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getSize</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    <span class="token keyword">const</span> names <span class="token operator">=</span> relPath<span class="token punctuation">.</span><span class="token method function property-access">split</span><span class="token punctuation">(</span>path<span class="token punctuation">.</span><span class="token property-access">sep</span><span class="token punctuation">)</span>\n    <span class="token keyword">const</span> lastIdx <span class="token operator">=</span> names<span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">-</span> <span class="token number">1</span>\n\n    tree<span class="token punctuation">.</span><span class="token property-access">size</span> <span class="token operator">+=</span> size\n    <span class="token keyword">let</span> point <span class="token operator">=</span> tree<span class="token punctuation">.</span><span class="token property-access">children</span>\n    names<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">name<span class="token punctuation">,</span> idx</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token comment">// ... 添加到树中</span>\n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">files</span><span class="token punctuation">.</span><span class="token method function property-access">add</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n\n    <span class="token comment">// ===== 获取文件依赖，并添加到树中 =====</span>\n    <span class="token keyword">const</span> deps <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">getDeps</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n    deps<span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">dep</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n      <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token method function property-access">addToTree</span><span class="token punctuation">(</span>dep<span class="token punctuation">)</span>      \n    <span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这里有一点需要注意，如果 <code>package/a</code> 分包下的文件依赖的文件不在 <code>package/a</code>  文件夹下，则该文件需要放入主包的文件树内。</p>\n<h2 id="%E9%80%9A%E8%BF%87-echart-%E7%94%BB%E5%9B%BE">通过 EChart 画图<a class="anchor" href="#%E9%80%9A%E8%BF%87-echart-%E7%94%BB%E5%9B%BE">§</a></h2>\n<p>经过上面的流程后，最终我们可以得到如下的一个 json 文件：</p>\n<p><img src="https://file.shenfq.com/pic/20201102001906.png" alt="tree.json"></p>\n<p>接下来，我们利用 ECharts 的画图能力，将这个 json 数据以图表的形式展现出来。我们可以在 ECharts 提供的实例中看到一个 <a href="https://echarts.apache.org/examples/zh/editor.html?c=treemap-disk">Disk Usage</a> 的案例，很符合我们的预期。</p>\n<p><img src="https://file.shenfq.com/pic/20201102002332.png" alt="ECharts"></p>\n<p>ECharts 的配置这里就不再赘述，按照官网的 demo 即可，我们需要把 <code>tree. json</code> 的数据转化为 ECharts 需要的格式就行了，完整的代码放到 codesandbod 了，去下面的线上地址就能看到效果了。</p>\n<blockquote>\n<p>线上地址：<a href="https://codesandbox.io/s/cold-dawn-kufc9">https://codesandbox.io/s/cold-dawn-kufc9</a></p>\n</blockquote>\n<p><img src="https://file.shenfq.com/pic/20201102004105.png" alt="最后效果"></p>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>这篇文章比较偏实践，所以贴了很多的代码，另外本文对各个文件的依赖获取提供了一个思路，虽然这里只是用文件树构造了一个这样的依赖图。</p>\n<p>在业务开发中，小程序 IDE 每次启动都需要进行全量的编译，开发版预览的时候会等待较长的时间，我们现在有文件依赖关系后，就可以只选取目前正在开发的页面进行打包，这样就能大大提高我们的开发效率。如果有对这部分内容感兴趣的，可以另外写一篇文章介绍下如何实现。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -49,7 +48,7 @@ export default {
         "张家喜"
     ],
     'date': "2020/11/02",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "用过 webpack 的同学肯定知道 webpack-bundle-analyzer ，可以用来分析当前项目 js 文件的依赖关系。 因为最近一直在做小程序业务，而且小程序对包体大小特别敏感，所以就想着能不能做一个类似的工具，用来查看当前小程序各个主...",
     'cover': "https://file.shenfq.com/pic/20201030230741.png",
     'categories': [
@@ -68,7 +67,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -88,7 +87,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -111,7 +110,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -133,7 +132,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -153,7 +152,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -173,7 +172,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -194,7 +193,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -214,7 +213,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -235,7 +234,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -255,7 +254,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -276,7 +275,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -296,7 +295,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -317,7 +316,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -340,7 +339,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -360,7 +359,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -380,7 +379,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -403,7 +402,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -424,7 +423,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -446,7 +445,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -468,7 +467,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -489,7 +488,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -510,7 +509,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -532,7 +531,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -554,7 +553,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -575,7 +574,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -596,7 +595,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -617,7 +616,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -638,7 +637,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -659,7 +658,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -680,7 +679,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -702,7 +701,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -725,7 +724,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -746,7 +745,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -768,7 +767,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -787,7 +786,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -809,7 +808,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -830,7 +829,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -852,7 +851,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -872,7 +871,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -893,7 +892,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -916,7 +915,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -940,7 +939,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -963,7 +962,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -982,7 +981,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1001,7 +1000,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1025,7 +1024,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1046,7 +1045,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1069,7 +1068,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1090,7 +1089,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1110,7 +1109,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1132,7 +1131,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1153,7 +1152,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1174,7 +1173,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1197,7 +1196,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1219,7 +1218,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1240,7 +1239,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1260,7 +1259,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1281,7 +1280,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1302,7 +1301,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1323,7 +1322,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1345,7 +1344,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1365,7 +1364,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1385,7 +1384,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1406,7 +1405,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1427,7 +1426,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1447,7 +1446,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1468,7 +1467,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1489,7 +1488,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1510,7 +1509,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

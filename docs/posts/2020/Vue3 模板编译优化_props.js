@@ -9,7 +9,6 @@ export default {
             __html: '<h1>Vue3 模板编译优化</h1>\n<p>Vue3 正式发布已经有一段时间了，前段时间写了一篇文章（<a href="https://blog.shenfq.com/2020/vue-%E6%A8%A1%E6%9D%BF%E7%BC%96%E8%AF%91%E5%8E%9F%E7%90%86/">《Vue 模板编译原理》</a>）分析 Vue 的模板编译原理。今天的文章打算学习下 Vue3 下的模板编译与 Vue2 下的差异，以及 VDOM 下 Diff 算法的优化。</p>\n<h2 id="%E7%BC%96%E8%AF%91%E5%85%A5%E5%8F%A3">编译入口<a class="anchor" href="#%E7%BC%96%E8%AF%91%E5%85%A5%E5%8F%A3">§</a></h2>\n<p>了解过 Vue3 的同学肯定知道 Vue3 引入了新的组合 Api，在组件 <code>mount</code> 阶段会调用 <code>setup</code> 方法，之后会判断 <code>render</code> 方法是否存在，如果不存在会调用 <code>compile</code> 方法将 <code>template</code> 转化为 <code>render</code>。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// packages/runtime-core/src/renderer.ts</span>\n<span class="token keyword">const</span> <span class="token function-variable function">mountComponent</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">initialVNode<span class="token punctuation">,</span> container</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> instance <span class="token operator">=</span> <span class="token punctuation">(</span>\n    initialVNode<span class="token punctuation">.</span><span class="token property-access">component</span> <span class="token operator">=</span> <span class="token function">createComponentInstance</span><span class="token punctuation">(</span>\n      <span class="token comment">// ...params</span>\n    <span class="token punctuation">)</span>\n  <span class="token punctuation">)</span>\n  <span class="token comment">// 调用 setup</span>\n  <span class="token function">setupComponent</span><span class="token punctuation">(</span>instance<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token comment">// packages/runtime-core/src/component.ts</span>\n<span class="token keyword">let</span> compile\n<span class="token keyword module">export</span> <span class="token keyword">function</span> <span class="token function">registerRuntimeCompiler</span><span class="token punctuation">(</span><span class="token parameter">_compile</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  compile <span class="token operator">=</span> _compile\n<span class="token punctuation">}</span>\n<span class="token keyword module">export</span> <span class="token keyword">function</span> <span class="token function">setupComponent</span><span class="token punctuation">(</span><span class="token parameter">instance</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> <span class="token maybe-class-name">Component</span> <span class="token operator">=</span> instance<span class="token punctuation">.</span><span class="token property-access">type</span>\n  <span class="token keyword">const</span> <span class="token punctuation">{</span> setup <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token maybe-class-name">Component</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>setup<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// ...调用 setup</span>\n  <span class="token punctuation">}</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>compile <span class="token operator">&amp;&amp;</span> <span class="token maybe-class-name">Component</span><span class="token punctuation">.</span><span class="token property-access">template</span> <span class="token operator">&amp;&amp;</span> <span class="token operator">!</span><span class="token maybe-class-name">Component</span><span class="token punctuation">.</span><span class="token property-access">render</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 如果没有 render 方法</span>\n    <span class="token comment">// 调用 compile 将 template 转为 render 方法</span>\n    <span class="token maybe-class-name">Component</span><span class="token punctuation">.</span><span class="token property-access">render</span> <span class="token operator">=</span> <span class="token function">compile</span><span class="token punctuation">(</span><span class="token maybe-class-name">Component</span><span class="token punctuation">.</span><span class="token property-access">template</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token spread operator">...</span><span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这部分都是 runtime-core 中的代码，之前的文章有讲过 Vue 分为完整版和 runtime 版本。如果使用 <code>vue-loader</code> 处理 <code>.vue</code> 文件，一般都会将 <code>.vue</code> 文件中的 <code>template</code> 直接处理成 <code>render</code> 方法。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">//  需要编译器</span>\n<span class="token maybe-class-name">Vue</span><span class="token punctuation">.</span><span class="token method function property-access">createApp</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  template<span class="token operator">:</span> <span class="token string">\'&lt;div>{{ hi }}&lt;/div>\'</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n<span class="token comment">// 不需要</span>\n<span class="token maybe-class-name">Vue</span><span class="token punctuation">.</span><span class="token method function property-access">createApp</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  <span class="token function">render</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token maybe-class-name">Vue</span><span class="token punctuation">.</span><span class="token method function property-access">h</span><span class="token punctuation">(</span><span class="token string">\'div\'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">hi</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>完整版与 runtime 版的差异就是，完整版会引入 <code>compile</code> 方法，如果是 vue-cli 生成的项目就会抹去这部分代码，将 compile 过程都放到打包的阶段，以此优化性能。runtime-dom 中提供了 <code>registerRuntimeCompiler</code> 方法用于注入 <code>compile</code> 方法。</p>\n<p><img src="https://file.shenfq.com/pic/20201109144930.png" alt=""></p>\n<h2 id="%E4%B8%BB%E6%B5%81%E7%A8%8B">主流程<a class="anchor" href="#%E4%B8%BB%E6%B5%81%E7%A8%8B">§</a></h2>\n<p>在完整版的 <code>index.js</code> 中，调用了  <code>registerRuntimeCompiler</code> 将 <code>compile</code> 进行注入，接下来我们看看注入的 <code>compile</code> 方法主要做了什么。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// packages/vue/src/index.ts</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> compile <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'@vue/compiler-dom\'</span>\n\n<span class="token comment">// 编译缓存</span>\n<span class="token keyword">const</span> compileCache <span class="token operator">=</span> <span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token method function property-access">create</span><span class="token punctuation">(</span><span class="token keyword null nil">null</span><span class="token punctuation">)</span>\n\n<span class="token comment">// 注入 compile 方法</span>\n<span class="token keyword">function</span> <span class="token function">compileToFunction</span><span class="token punctuation">(</span>\n  <span class="token comment">// 模板</span>\n  template<span class="token operator">:</span> string <span class="token operator">|</span> <span class="token maybe-class-name">HTMLElement</span><span class="token punctuation">,</span>\n  <span class="token comment">// 编译配置</span>\n  options<span class="token operator">?</span><span class="token operator">:</span> <span class="token maybe-class-name">CompilerOptions</span>\n<span class="token punctuation">)</span><span class="token operator">:</span> <span class="token maybe-class-name">RenderFunction</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span><span class="token function">isString</span><span class="token punctuation">(</span>template<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 如果 template 不是字符串</span>\n    <span class="token comment">// 则认为是一个 DOM 节点，获取 innerHTML</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>template<span class="token punctuation">.</span><span class="token property-access">nodeType</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      template <span class="token operator">=</span> template<span class="token punctuation">.</span><span class="token property-access">innerHTML</span>\n    <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">return</span> <span class="token constant">NOOP</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 如果缓存中存在，直接从缓存中获取</span>\n  <span class="token keyword">const</span> key <span class="token operator">=</span> template\n  <span class="token keyword">const</span> cached <span class="token operator">=</span> compileCache<span class="token punctuation">[</span>key<span class="token punctuation">]</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>cached<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> cached\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 如果是 ID 选择器，这获取 DOM 元素后，取 innerHTML</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>template<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span> <span class="token operator">===</span> <span class="token string">\'#\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> el <span class="token operator">=</span> <span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span>template<span class="token punctuation">)</span>\n    template <span class="token operator">=</span> el <span class="token operator">?</span> el<span class="token punctuation">.</span><span class="token property-access">innerHTML</span> <span class="token operator">:</span> <span class="token string">\'\'</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 调用 compile 获取 render code</span>\n  <span class="token keyword">const</span> <span class="token punctuation">{</span> code <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">compile</span><span class="token punctuation">(</span>\n    template<span class="token punctuation">,</span>\n    options\n  <span class="token punctuation">)</span>\n\n  <span class="token comment">// 将 render code 转化为 function</span>\n  <span class="token keyword">const</span> render <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Function</span><span class="token punctuation">(</span>code<span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n\n  <span class="token comment">// 返回 render 方法的同时，将其放入缓存</span>\n  <span class="token keyword control-flow">return</span> <span class="token punctuation">(</span>compileCache<span class="token punctuation">[</span>key<span class="token punctuation">]</span> <span class="token operator">=</span> render<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token comment">// 注入 compile</span>\n<span class="token function">registerRuntimeCompiler</span><span class="token punctuation">(</span>compileToFunction<span class="token punctuation">)</span>\n</code></pre>\n<p>在讲 Vue2 模板编译的时候已经讲过，<code>compile</code> 方法主要分为三步，Vue3 的逻辑类似：</p>\n<ol>\n<li>模板编译，将模板代码转化为 AST；</li>\n<li>优化 AST，方便后续虚拟 DOM 更新；</li>\n<li>生成代码，将 AST 转化为可执行的代码；</li>\n</ol>\n<pre class="language-js"><code class="language-js"><span class="token comment">// packages/compiler-dom/src/index.ts</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> baseCompile<span class="token punctuation">,</span> baseParse <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'@vue/compiler-core\'</span>\n<span class="token keyword module">export</span> <span class="token keyword">function</span> <span class="token function">compile</span><span class="token punctuation">(</span><span class="token parameter">template<span class="token punctuation">,</span> options</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> <span class="token function">baseCompile</span><span class="token punctuation">(</span>template<span class="token punctuation">,</span> options<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token comment">// packages/compiler-core/src/compile.ts</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> baseParse <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./parse\'</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> transform <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./transform\'</span>\n\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> transformIf <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./transforms/vIf\'</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> transformFor <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./transforms/vFor\'</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> transformText <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./transforms/transformText\'</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> transformElement <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./transforms/transformElement\'</span>\n\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> transformOn <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./transforms/vOn\'</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> transformBind <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./transforms/vBind\'</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token punctuation">{</span> transformModel <span class="token punctuation">}</span></span> <span class="token keyword module">from</span> <span class="token string">\'./transforms/vModel\'</span>\n\n<span class="token keyword module">export</span> <span class="token keyword">function</span> <span class="token function">baseCompile</span><span class="token punctuation">(</span><span class="token parameter">template<span class="token punctuation">,</span> options</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token comment">// 解析 html，转化为 ast</span>\n  <span class="token keyword">const</span> ast <span class="token operator">=</span> <span class="token function">baseParse</span><span class="token punctuation">(</span>template<span class="token punctuation">,</span> options<span class="token punctuation">)</span>\n  <span class="token comment">// 优化 ast，标记静态节点</span>\n  <span class="token function">transform</span><span class="token punctuation">(</span>ast<span class="token punctuation">,</span> <span class="token punctuation">{</span>\n    <span class="token spread operator">...</span>options<span class="token punctuation">,</span>\n    nodeTransforms<span class="token operator">:</span> <span class="token punctuation">[</span>\n      transformIf<span class="token punctuation">,</span>\n      transformFor<span class="token punctuation">,</span>\n      transformText<span class="token punctuation">,</span>\n      transformElement<span class="token punctuation">,</span>\n      <span class="token comment">// ... 省略了部分 transform</span>\n    <span class="token punctuation">]</span><span class="token punctuation">,</span>\n    directiveTransforms<span class="token operator">:</span> <span class="token punctuation">{</span>\n      on<span class="token operator">:</span> transformOn<span class="token punctuation">,</span>\n      bind<span class="token operator">:</span> transformBind<span class="token punctuation">,</span>\n      model<span class="token operator">:</span> transformModel\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n  <span class="token comment">// 将 ast 转化为可执行代码</span>\n  <span class="token keyword control-flow">return</span> <span class="token function">generate</span><span class="token punctuation">(</span>ast<span class="token punctuation">,</span> options<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h2 id="%E8%AE%A1%E7%AE%97-patchflag">计算 PatchFlag<a class="anchor" href="#%E8%AE%A1%E7%AE%97-patchflag">§</a></h2>\n<p>这里大致的逻辑与之前的并没有多大的差异，主要是 <code>optimize</code> 方法变成了  <code>transform</code> 方法，而且默认会对一些模板语法进行 <code>transform</code>。这些 <code>transform</code> 就是后续虚拟 DOM 优化的关键，我们先看看 <code>transform</code> 的代码 。</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// packages/compiler-core/src/transform.ts</span>\n<span class="token keyword module">export</span> <span class="token keyword">function</span> <span class="token function">transform</span><span class="token punctuation">(</span><span class="token parameter">root<span class="token punctuation">,</span> options</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> context <span class="token operator">=</span> <span class="token function">createTransformContext</span><span class="token punctuation">(</span>root<span class="token punctuation">,</span> options<span class="token punctuation">)</span>\n  <span class="token function">traverseNode</span><span class="token punctuation">(</span>root<span class="token punctuation">,</span> context<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n<span class="token keyword module">export</span> <span class="token keyword">function</span> <span class="token function">traverseNode</span><span class="token punctuation">(</span><span class="token parameter">node<span class="token punctuation">,</span> context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  context<span class="token punctuation">.</span><span class="token property-access">currentNode</span> <span class="token operator">=</span> node\n  <span class="token keyword">const</span> <span class="token punctuation">{</span> nodeTransforms <span class="token punctuation">}</span> <span class="token operator">=</span> context\n  <span class="token keyword">const</span> exitFns <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> nodeTransforms<span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// Transform 会返回一个退出函数，在处理完所有的子节点后再执行</span>\n    <span class="token keyword">const</span> onExit <span class="token operator">=</span> nodeTransforms<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> context<span class="token punctuation">)</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>onExit<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token function">isArray</span><span class="token punctuation">(</span>onExit<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        exitFns<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span><span class="token spread operator">...</span>onExit<span class="token punctuation">)</span>\n      <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n        exitFns<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>onExit<span class="token punctuation">)</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  <span class="token function">traverseChildren</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> context<span class="token punctuation">)</span>\n  context<span class="token punctuation">.</span><span class="token property-access">currentNode</span> <span class="token operator">=</span> node\n  <span class="token comment">// 执行所以 Transform 的退出函数</span>\n  <span class="token keyword">let</span> i <span class="token operator">=</span> exitFns<span class="token punctuation">.</span><span class="token property-access">length</span>\n  <span class="token keyword control-flow">while</span> <span class="token punctuation">(</span>i<span class="token operator">--</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    exitFns<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>我们重点看一下 <code>transformElement</code> 的逻辑：</p>\n<pre class="language-js"><code class="language-js"><span class="token comment">// packages/compiler-core/src/transforms/transformElement.ts</span>\n<span class="token keyword module">export</span> <span class="token keyword">const</span> transformElement<span class="token operator">:</span> <span class="token function-variable function"><span class="token maybe-class-name">NodeTransform</span></span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">node<span class="token punctuation">,</span> context</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token comment">// transformElement 没有执行任何逻辑，而是直接返回了一个退出函数</span>\n  <span class="token comment">// 说明 transformElement 需要等所有的子节点处理完后才执行</span>\n  <span class="token keyword control-flow">return</span> <span class="token keyword">function</span> <span class="token function">postTransformElement</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> <span class="token punctuation">{</span> tag<span class="token punctuation">,</span> props <span class="token punctuation">}</span> <span class="token operator">=</span> node\n\n    <span class="token keyword">let</span> vnodeProps\n    <span class="token keyword">let</span> vnodePatchFlag\n    <span class="token keyword">const</span> vnodeTag <span class="token operator">=</span> node<span class="token punctuation">.</span><span class="token property-access">tagType</span> <span class="token operator">===</span> <span class="token maybe-class-name">ElementTypes</span><span class="token punctuation">.</span><span class="token constant">COMPONENT</span>\n      <span class="token operator">?</span> <span class="token function">resolveComponentType</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> context<span class="token punctuation">)</span>\n      <span class="token operator">:</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">"</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>tag<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">"</span><span class="token template-punctuation string">`</span></span>\n    \n    <span class="token keyword">let</span> patchFlag <span class="token operator">=</span> <span class="token number">0</span>\n    <span class="token comment">// 检测节点属性</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>props<span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">></span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 检测节点属性的动态部分</span>\n      <span class="token keyword">const</span> propsBuildResult <span class="token operator">=</span> <span class="token function">buildProps</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> context<span class="token punctuation">)</span>\n      vnodeProps <span class="token operator">=</span> propsBuildResult<span class="token punctuation">.</span><span class="token property-access">props</span>\n      patchFlag <span class="token operator">=</span> propsBuildResult<span class="token punctuation">.</span><span class="token property-access">patchFlag</span>\n    <span class="token punctuation">}</span>\n\n    <span class="token comment">// 检测子节点</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>node<span class="token punctuation">.</span><span class="token property-access">children</span><span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">></span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>node<span class="token punctuation">.</span><span class="token property-access">children</span><span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">===</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token keyword">const</span> child <span class="token operator">=</span> node<span class="token punctuation">.</span><span class="token property-access">children</span><span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span>\n        <span class="token comment">// 检测子节点是否为动态文本</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span><span class="token function">getStaticType</span><span class="token punctuation">(</span>child<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          patchFlag <span class="token operator">|=</span> <span class="token maybe-class-name">PatchFlags</span><span class="token punctuation">.</span><span class="token constant">TEXT</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n\n    <span class="token comment">// 格式化 patchFlag</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>patchFlag <span class="token operator">!==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        vnodePatchFlag <span class="token operator">=</span> <span class="token known-class-name class-name">String</span><span class="token punctuation">(</span>patchFlag<span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n\n    node<span class="token punctuation">.</span><span class="token property-access">codegenNode</span> <span class="token operator">=</span> <span class="token function">createVNodeCall</span><span class="token punctuation">(</span>\n      context<span class="token punctuation">,</span>\n      vnodeTag<span class="token punctuation">,</span>\n      vnodeProps<span class="token punctuation">,</span>\n      vnodeChildren<span class="token punctuation">,</span>\n      vnodePatchFlag\n    <span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><code>buildProps</code> 会对节点的属性进行一次遍历，由于内部源码涉及很多其他的细节，这里的代码是经过简化之后的，只保留了 <code>patchFlag</code> 相关的逻辑。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">export</span> <span class="token keyword">function</span> <span class="token function">buildProps</span><span class="token punctuation">(</span>\n  node<span class="token operator">:</span> <span class="token maybe-class-name">ElementNode</span><span class="token punctuation">,</span>\n  context<span class="token operator">:</span> <span class="token maybe-class-name">TransformContext</span><span class="token punctuation">,</span>\n  props<span class="token operator">:</span> <span class="token maybe-class-name">ElementNode</span><span class="token punctuation">[</span><span class="token string">\'props\'</span><span class="token punctuation">]</span> <span class="token operator">=</span> node<span class="token punctuation">.</span><span class="token property-access">props</span>\n<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">let</span> patchFlag <span class="token operator">=</span> <span class="token number">0</span>\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> props<span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">const</span> prop <span class="token operator">=</span> props<span class="token punctuation">[</span>i<span class="token punctuation">]</span>\n    <span class="token keyword">const</span> <span class="token punctuation">[</span>key<span class="token punctuation">,</span> name<span class="token punctuation">]</span> <span class="token operator">=</span> prop<span class="token punctuation">.</span><span class="token property-access">name</span><span class="token punctuation">.</span><span class="token method function property-access">split</span><span class="token punctuation">(</span><span class="token string">\':\'</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>key <span class="token operator">===</span> <span class="token string">\'v-bind\'</span> <span class="token operator">||</span> key <span class="token operator">===</span> <span class="token string">\'\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>name <span class="token operator">===</span> <span class="token string">\'class\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token comment">// 如果包含 :class 属性，patchFlag | CLASS</span>\n        patchFlag <span class="token operator">|=</span> <span class="token maybe-class-name">PatchFlags</span><span class="token punctuation">.</span><span class="token constant">CLASS</span>\n      <span class="token punctuation">}</span> <span class="token keyword control-flow">else</span> <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>name <span class="token operator">===</span> <span class="token string">\'style\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        <span class="token comment">// 如果包含 :style 属性，patchFlag | STYLE</span>\n        patchFlag <span class="token operator">|=</span> <span class="token maybe-class-name">PatchFlags</span><span class="token punctuation">.</span><span class="token constant">STYLE</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword control-flow">return</span> <span class="token punctuation">{</span>\n    patchFlag\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>上面的代码只展示了三种 <code>patchFlag</code> 的类型：</p>\n<ul>\n<li><strong>节点只有一个文本子节点，且该文本包含动态的数据</strong>（<code>TEXT = 1</code>）</li>\n</ul>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span><span class="token punctuation">></span></span>name: {{name}}<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">></span></span>\n</code></pre>\n<ul>\n<li><strong>节点包含可变的 class 属性</strong>（<code>CLASS = 1 &lt;&lt; 1</code>）</li>\n</ul>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">:class</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>{ active: isActive }<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n</code></pre>\n<ul>\n<li><strong>节点包含可变的 style 属性</strong>（<code>STYLE = 1 &lt;&lt; 2</code>）</li>\n</ul>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">:</span><span class="token style-attr language-css"><span class="token attr-name"><span class="token attr-name">style</span></span><span class="token punctuation">="</span><span class="token attr-value"><span class="token punctuation">{</span> <span class="token property">color</span><span class="token punctuation">:</span> color <span class="token punctuation">}</span></span><span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">></span></span>\n</code></pre>\n<p>可以看到 PatchFlags 都是数字 <code>1</code> 经过 <strong>左移操作符</strong> 计算得到的。</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword module">export</span> <span class="token keyword">const</span> <span class="token keyword">enum</span> <span class="token maybe-class-name">PatchFlags</span> <span class="token punctuation">{</span>\n  <span class="token constant">TEXT</span> <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">,</span>             <span class="token comment">// 1, 二进制 0000 0001</span>\n  <span class="token constant">CLASS</span> <span class="token operator">=</span> <span class="token number">1</span> <span class="token operator">&lt;&lt;</span> <span class="token number">1</span><span class="token punctuation">,</span>       <span class="token comment">// 2, 二进制 0000 0010</span>\n  <span class="token constant">STYLE</span> <span class="token operator">=</span> <span class="token number">1</span> <span class="token operator">&lt;&lt;</span> <span class="token number">2</span><span class="token punctuation">,</span>       <span class="token comment">// 4, 二进制 0000 0100</span>\n  <span class="token constant">PROPS</span> <span class="token operator">=</span> <span class="token number">1</span> <span class="token operator">&lt;&lt;</span> <span class="token number">3</span><span class="token punctuation">,</span>       <span class="token comment">// 8, 二进制 0000 1000</span>\n  <span class="token spread operator">...</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>从上面的代码能看出来，<code>patchFlag</code> 的初始值为 0，每次对 <code>patchFlag</code> 都是执行 <code>|</code> （或）操作。如果当前节点是一个只有动态文本子节点且同时具有动态 style 属性，最后得到的 <code>patchFlag</code> 为 5（<code>二进制：0000 0101</code>）。</p>\n<pre class="language-js"><code class="language-js"><span class="token operator">&lt;</span>p <span class="token operator">:</span>style<span class="token operator">=</span><span class="token string">"{ color: color }"</span><span class="token operator">></span>name<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">{</span>name<span class="token punctuation">}</span><span class="token punctuation">}</span><span class="token operator">&lt;</span><span class="token operator">/</span>p<span class="token operator">></span>\n</code></pre>\n<pre class="language-js"><code class="language-js">patchFlag <span class="token operator">=</span> <span class="token number">0</span>\npatchFlag <span class="token operator">|=</span> <span class="token maybe-class-name">PatchFlags</span><span class="token punctuation">.</span><span class="token constant">STYLE</span>\npatchFlag <span class="token operator">|=</span> <span class="token maybe-class-name">PatchFlags</span><span class="token punctuation">.</span><span class="token constant">TEXT</span>\n<span class="token comment">// 或运算：两个对应的二进制位中只要一个是1，结果对应位就是1。</span>\n<span class="token comment">// 0000 0001</span>\n<span class="token comment">// 0000 0100</span>\n<span class="token comment">// ------------</span>\n<span class="token comment">// 0000 0101  =>  十进制 5</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20201111135121.png" alt="patchFlag"></p>\n<p>我们将上面的代码放到 Vue3 中运行：</p>\n<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> app <span class="token operator">=</span> <span class="token maybe-class-name">Vue</span><span class="token punctuation">.</span><span class="token method function property-access">createApp</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  <span class="token function">data</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span> <span class="token punctuation">{</span>\n      color<span class="token operator">:</span> <span class="token string">\'red\'</span><span class="token punctuation">,</span>\n      name<span class="token operator">:</span> <span class="token string">\'shenfq\'</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  template<span class="token operator">:</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">&lt;div>\n    &lt;p :style="{ color: color }">name: {{name}}&lt;/p>\n  &lt;/div></span><span class="token template-punctuation string">`</span></span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\napp<span class="token punctuation">.</span><span class="token method function property-access">mount</span><span class="token punctuation">(</span><span class="token string">\'#app\'</span><span class="token punctuation">)</span>\n</code></pre>\n<p>最后生成的 <code>render</code> 方法如下，和我们之前的描述基本一致。</p>\n<p><img src="https://file.shenfq.com/pic/20201111135707.png" alt="function render() {}"></p>\n<h2 id="render-%E4%BC%98%E5%8C%96">render 优化<a class="anchor" href="#render-%E4%BC%98%E5%8C%96">§</a></h2>\n<p>Vue3 在虚拟 DOM Diff 时，会取出 <code>patchFlag</code> 和需要进行的 diff 类型进行 <code>&amp;</code>（与）操作，如果结果为 true 才进入对应的 diff。</p>\n<p><img src="https://file.shenfq.com/pic/20201111140613.png" alt="patchFlag 判断"></p>\n<p>还是拿之前的模板举例：</p>\n<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span> <span class="token attr-name">:</span><span class="token style-attr language-css"><span class="token attr-name"><span class="token attr-name">style</span></span><span class="token punctuation">="</span><span class="token attr-value"><span class="token punctuation">{</span> <span class="token property">color</span><span class="token punctuation">:</span> color <span class="token punctuation">}</span></span><span class="token punctuation">"</span></span><span class="token punctuation">></span></span>name: {{name}}<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">></span></span>\n</code></pre>\n<p>如果此时的 name 发生了修改，p 节点进入了 diff 阶段，此时会将判断 <code>patchFlag &amp; PatchFlags.TEXT</code> ，这个时候结果为真，表明 p 节点存在文本修改的情况。</p>\n<p><img src="https://file.shenfq.com/pic/20201111141501.png" alt="patchFlag"></p>\n<pre class="language-js"><code class="language-js">patchFlag <span class="token operator">=</span> <span class="token number">5</span>\npatchFlag <span class="token operator">&amp;</span> <span class="token maybe-class-name">PatchFlags</span><span class="token punctuation">.</span><span class="token constant">TEXT</span>\n<span class="token comment">// 或运算：只有对应的两个二进位都为1时，结果位才为1。</span>\n<span class="token comment">// 0000 0101</span>\n<span class="token comment">// 0000 0001</span>\n<span class="token comment">// ------------</span>\n<span class="token comment">// 0000 0001  =>  十进制 1</span>\n</code></pre>\n<pre class="language-js"><code class="language-js"><span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>patchFlag <span class="token operator">&amp;</span> <span class="token maybe-class-name">PatchFlags</span><span class="token punctuation">.</span><span class="token constant">TEXT</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>oldNode<span class="token punctuation">.</span><span class="token property-access">children</span> <span class="token operator">!==</span> newNode<span class="token punctuation">.</span><span class="token property-access">children</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 修改文本</span>\n    <span class="token function">hostSetElementText</span><span class="token punctuation">(</span>el<span class="token punctuation">,</span> newNode<span class="token punctuation">.</span><span class="token property-access">children</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>但是进行  <code>patchFlag &amp; PatchFlags.CLASS</code> 判断时，由于节点并没有动态 Class，返回值为 0，所以就不会对该节点的 class 属性进行 diff，以此来优化性能。</p>\n<p><img src="https://file.shenfq.com/pic/20201111141957.png" alt="patchFlag"></p>\n<pre class="language-js"><code class="language-js">patchFlag <span class="token operator">=</span> <span class="token number">5</span>\npatchFlag <span class="token operator">&amp;</span> <span class="token maybe-class-name">PatchFlags</span><span class="token punctuation">.</span><span class="token constant">CLASS</span>\n<span class="token comment">// 或运算：只有对应的两个二进位都为1时，结果位才为1。</span>\n<span class="token comment">// 0000 0101</span>\n<span class="token comment">// 0000 0010</span>\n<span class="token comment">// ------------</span>\n<span class="token comment">// 0000 0000  =>  十进制 0</span>\n</code></pre>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>其实 Vue3 相关的性能优化有很多，这里只单独将 patchFlag 的十分之一的内容拿出来讲了，Vue3 还没正式发布的时候就有看到说 Diff 过程会通过 patchFlag 来进行性能优化，所以打算看看他的优化逻辑，总的来说还是有所收获。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -36,7 +35,7 @@ export default {
         "张家喜"
     ],
     'date': "2020/11/11",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "Vue3 正式发布已经有一段时间了，前段时间写了一篇文章（《Vue 模板编译原理》）分析 Vue 的模板编译原理。今天的文章打算学习下 Vue3 下的模板编译与 Vue2 下的差异，以及 VDOM 下 Diff 算法的优化。 编译入口 了解过 Vue3 的...",
     'cover': "https://file.shenfq.com/pic/20201109144930.png",
     'categories': [
@@ -56,7 +55,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -76,7 +75,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -99,7 +98,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -121,7 +120,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -141,7 +140,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -161,7 +160,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -182,7 +181,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -202,7 +201,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -223,7 +222,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -243,7 +242,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -264,7 +263,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -284,7 +283,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -305,7 +304,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -328,7 +327,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -348,7 +347,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -368,7 +367,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -391,7 +390,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -412,7 +411,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -434,7 +433,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -456,7 +455,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -477,7 +476,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -498,7 +497,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -520,7 +519,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -542,7 +541,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -563,7 +562,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -584,7 +583,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -605,7 +604,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -626,7 +625,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -647,7 +646,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -668,7 +667,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -690,7 +689,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -713,7 +712,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -734,7 +733,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -756,7 +755,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -775,7 +774,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -797,7 +796,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -818,7 +817,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -840,7 +839,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -860,7 +859,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -881,7 +880,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -904,7 +903,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -928,7 +927,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -951,7 +950,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -970,7 +969,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -989,7 +988,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1013,7 +1012,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1034,7 +1033,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1057,7 +1056,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1078,7 +1077,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1098,7 +1097,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1120,7 +1119,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1141,7 +1140,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1162,7 +1161,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1185,7 +1184,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1207,7 +1206,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1228,7 +1227,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1248,7 +1247,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1269,7 +1268,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1290,7 +1289,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1311,7 +1310,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1333,7 +1332,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1353,7 +1352,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1373,7 +1372,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1394,7 +1393,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1415,7 +1414,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1435,7 +1434,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1456,7 +1455,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1477,7 +1476,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1498,7 +1497,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

@@ -9,7 +9,6 @@ export default {
             __html: '<h1>你不知道的 TypeScript 高级类型</h1>\n<h2 id="%E5%89%8D%E8%A8%80">前言<a class="anchor" href="#%E5%89%8D%E8%A8%80">§</a></h2>\n<p>对于有 JavaScript 基础的同学来说，入门 TypeScript 其实很容易，只需要简单掌握其基础的类型系统就可以逐步将 JS 应用过渡到 TS 应用。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token comment">// js</span>\n<span class="token keyword">const</span> <span class="token function-variable function">double</span> <span class="token operator">=</span> <span class="token punctuation">(</span>num<span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token number">2</span> <span class="token operator">*</span> num\n\n<span class="token comment">// ts</span>\n<span class="token keyword">const</span> double <span class="token operator">=</span> <span class="token punctuation">(</span>num<span class="token operator">:</span> <span class="token builtin">number</span><span class="token punctuation">)</span><span class="token operator">:</span> <span class="token builtin">number</span> <span class="token operator">=></span> <span class="token number">2</span> <span class="token operator">*</span> num\n</code></pre>\n<p>然而，当应用越来越复杂，我们很容易把一些变量设置为 any 类型，TypeScript 写着写着也就成了 AnyScript。为了让大家能更加深入的了解 TypeScript 的类型系统，本文将重点介绍其高级类型，帮助大家摆脱 AnyScript。</p>\n<h2 id="%E6%B3%9B%E5%9E%8B">泛型<a class="anchor" href="#%E6%B3%9B%E5%9E%8B">§</a></h2>\n<p>在讲解高级类型之前，我们需要先简单理解泛型是什么。</p>\n<p>泛型是强类型语言中比较重要的一个概念，合理的使用泛型可以提升代码的可复用性，让系统更加灵活。下面是维基百科对泛型的描述：</p>\n<blockquote>\n<p>泛型允许程序员在强类型程序设计语言中编写代码时使用一些以后才指定的类型，在实例化时作为参数指明这些类型。</p>\n</blockquote>\n<p>泛型通过一对尖括号来表示(<code>&lt;&gt;</code>)，尖括号内的字符被称为<em>类型变量</em>，这个变量用来表示类型。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">function</span> <span class="token generic-function"><span class="token function">copy</span><span class="token generic class-name"><span class="token operator">&lt;</span><span class="token constant">T</span><span class="token operator">></span></span></span><span class="token punctuation">(</span>arg<span class="token operator">:</span> <span class="token constant">T</span><span class="token punctuation">)</span><span class="token operator">:</span> <span class="token constant">T</span> <span class="token punctuation">{</span>\n  <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token keyword">typeof</span> arg <span class="token operator">===</span> <span class="token string">\'object\'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">return</span> <span class="token constant">JSON</span><span class="token punctuation">.</span><span class="token function">parse</span><span class="token punctuation">(</span>\n      <span class="token constant">JSON</span><span class="token punctuation">.</span><span class="token function">stringify</span><span class="token punctuation">(</span>arg<span class="token punctuation">)</span>\n    <span class="token punctuation">)</span>\n  <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>\n    <span class="token keyword">return</span> arg\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这个类型 T，在没有调用 copy 函数的时候并不确定，只有调用 copy 的时候，我们才知道 T 具体代表什么类型。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">const</span> str <span class="token operator">=</span> <span class="token generic-function"><span class="token function">copy</span><span class="token generic class-name"><span class="token operator">&lt;</span><span class="token builtin">string</span><span class="token operator">></span></span></span><span class="token punctuation">(</span><span class="token string">\'my name is typescript\'</span><span class="token punctuation">)</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/ipic/2020-08-26-135150.png" alt="类型"></p>\n<p>我们在 VS Code 中可以看到 copy 函数的参数以及返回值已经有了类型，也就是说我们调用 copy 函数的时候，给类型变量 T 赋值了 string。其实，我们在调用 copy 的时候可以省略尖括号，通过 TS 的类型推导是可以确定 T 为 string 的。</p>\n<p><img src="https://file.shenfq.com/ipic/2020-08-26-135601.png" alt="类型推导"></p>\n<h2 id="%E9%AB%98%E7%BA%A7%E7%B1%BB%E5%9E%8B">高级类型<a class="anchor" href="#%E9%AB%98%E7%BA%A7%E7%B1%BB%E5%9E%8B">§</a></h2>\n<p>除了 string、number、boolean 这种基础类型外，我们还应该了解一些类型声明中的一些高级用法。</p>\n<h3 id="%E4%BA%A4%E5%8F%89%E7%B1%BB%E5%9E%8B">交叉类型（&amp;）<a class="anchor" href="#%E4%BA%A4%E5%8F%89%E7%B1%BB%E5%9E%8B">§</a></h3>\n<p>交叉类型说简单点就是将多个类型合并成一个类型，个人感觉叫做「合并类型」更合理一点，其语法规则和逻辑 “与” 的符号一致。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token constant">T</span> <span class="token operator">&amp;</span> <span class="token constant">U</span>\n</code></pre>\n<p>假如，我现在有两个类，一个按钮，一个超链接，现在我需要一个带有超链接的按钮，就可以使用交叉类型来实现。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">Button</span> <span class="token punctuation">{</span>\n  <span class="token keyword">type</span><span class="token operator">:</span> <span class="token builtin">string</span>\n  text<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">interface</span> <span class="token class-name">Link</span> <span class="token punctuation">{</span>\n  alt<span class="token operator">:</span> <span class="token builtin">string</span>\n  href<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">const</span> linkBtn<span class="token operator">:</span> Button <span class="token operator">&amp;</span> Link <span class="token operator">=</span> <span class="token punctuation">{</span>\n  <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">\'danger\'</span><span class="token punctuation">,</span>\n  text<span class="token operator">:</span> <span class="token string">\'跳转到百度\'</span><span class="token punctuation">,</span>\n  alt<span class="token operator">:</span> <span class="token string">\'跳转到百度\'</span><span class="token punctuation">,</span>\n  href<span class="token operator">:</span> <span class="token string">\'<a class="token url-link" href="http://www.baidu.com">http://www.baidu.com</a>\'</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E8%81%94%E5%90%88%E7%B1%BB%E5%9E%8B">联合类型（|）<a class="anchor" href="#%E8%81%94%E5%90%88%E7%B1%BB%E5%9E%8B">§</a></h3>\n<p>联合类型的语法规则和逻辑 “或” 的符号一致，表示其类型为连接的多个类型中的任意一个。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token constant">T</span> <span class="token operator">|</span> <span class="token constant">U</span>\n</code></pre>\n<p>例如，之前的 Button 组件，我们的 type 属性只能指定固定的几种字符串。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">Button</span> <span class="token punctuation">{</span>\n  <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">\'default\'</span> <span class="token operator">|</span> <span class="token string">\'primary\'</span> <span class="token operator">|</span> <span class="token string">\'danger\'</span>\n  text<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">const</span> btn<span class="token operator">:</span> Button <span class="token operator">=</span> <span class="token punctuation">{</span>\n  <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">\'primary\'</span><span class="token punctuation">,</span>\n  text<span class="token operator">:</span> <span class="token string">\'按钮\'</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E7%B1%BB%E5%9E%8B%E5%88%AB%E5%90%8Dtype">类型别名（type）<a class="anchor" href="#%E7%B1%BB%E5%9E%8B%E5%88%AB%E5%90%8Dtype">§</a></h3>\n<p>前面提到的交叉类型与联合类型如果有多个地方需要使用，就需要通过类型别名的方式，给这两种类型声明一个别名。类型别名与声明变量的语法类似，只需要把 <code>const</code>、<code>let</code> 换成 <code>type</code> 关键字即可。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Alias</span> <span class="token operator">=</span> <span class="token constant">T</span> <span class="token operator">|</span> <span class="token constant">U</span>\n</code></pre>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">InnerType</span> <span class="token operator">=</span> <span class="token string">\'default\'</span> <span class="token operator">|</span> <span class="token string">\'primary\'</span> <span class="token operator">|</span> <span class="token string">\'danger\'</span>\n\n<span class="token keyword">interface</span> <span class="token class-name">Button</span> <span class="token punctuation">{</span>\n  <span class="token keyword">type</span><span class="token operator">:</span> InnerType\n  text<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">interface</span> <span class="token class-name">Alert</span> <span class="token punctuation">{</span>\n  <span class="token keyword">type</span><span class="token operator">:</span> ButtonType\n  text<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E7%B1%BB%E5%9E%8B%E7%B4%A2%E5%BC%95keyof">类型索引（keyof）<a class="anchor" href="#%E7%B1%BB%E5%9E%8B%E7%B4%A2%E5%BC%95keyof">§</a></h3>\n<p><code>keyof</code> 类似于 <code>Object.keys</code> ，用于获取一个接口中 Key 的联合类型。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">Button</span> <span class="token punctuation">{</span>\n    <span class="token keyword">type</span><span class="token operator">:</span> <span class="token builtin">string</span>\n    text<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">type</span> <span class="token class-name">ButtonKeys</span> <span class="token operator">=</span> <span class="token keyword">keyof</span> Button\n<span class="token comment">// 等效于</span>\n<span class="token keyword">type</span> <span class="token class-name">ButtonKeys</span> <span class="token operator">=</span> <span class="token string">"type"</span> <span class="token operator">|</span> <span class="token string">"text"</span>\n</code></pre>\n<p>还是拿之前的 Button 类来举例，Button 的 type 类型来自于另一个类 ButtonTypes，按照之前的写法，每次 ButtonTypes 更新都需要修改 Button 类，如果我们使用 <code>keyof</code> 就不会有这个烦恼。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">ButtonStyle</span> <span class="token punctuation">{</span>\n    color<span class="token operator">:</span> <span class="token builtin">string</span>\n    background<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">interface</span> <span class="token class-name">ButtonTypes</span> <span class="token punctuation">{</span>\n    <span class="token keyword">default</span><span class="token operator">:</span> ButtonStyle\n    primary<span class="token operator">:</span> ButtonStyle\n    danger<span class="token operator">:</span> ButtonStyle\n<span class="token punctuation">}</span>\n<span class="token keyword">interface</span> <span class="token class-name">Button</span> <span class="token punctuation">{</span>\n    <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">\'default\'</span> <span class="token operator">|</span> <span class="token string">\'primary\'</span> <span class="token operator">|</span> <span class="token string">\'danger\'</span>\n    text<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token comment">// 使用 keyof 后，ButtonTypes修改后，type 类型会自动修改 </span>\n<span class="token keyword">interface</span> <span class="token class-name">Button</span> <span class="token punctuation">{</span>\n    <span class="token keyword">type</span><span class="token operator">:</span> <span class="token keyword">keyof</span> ButtonTypes\n    text<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n</code></pre>\n<h3 id="%E7%B1%BB%E5%9E%8B%E7%BA%A6%E6%9D%9Fextends">类型约束（extends）<a class="anchor" href="#%E7%B1%BB%E5%9E%8B%E7%BA%A6%E6%9D%9Fextends">§</a></h3>\n<p>这里的 <code>extends</code> 关键词不同于在 class 后使用 <code>extends</code> 的继承作用，泛型内使用的主要作用是对泛型加以约束。我们用我们前面写过的 copy 方法再举个例子：</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">BaseType</span> <span class="token operator">=</span> <span class="token builtin">string</span> <span class="token operator">|</span> <span class="token builtin">number</span> <span class="token operator">|</span> <span class="token builtin">boolean</span>\n\n<span class="token comment">// 这里表示 copy 的参数</span>\n<span class="token comment">// 只能是字符串、数字、布尔这几种基础类型</span>\n<span class="token keyword">function</span> <span class="token generic-function"><span class="token function">copy</span><span class="token generic class-name"><span class="token operator">&lt;</span><span class="token constant">T</span> <span class="token keyword">extends</span> BaseType<span class="token operator">></span></span></span><span class="token punctuation">(</span>arg<span class="token operator">:</span> <span class="token constant">T</span><span class="token punctuation">)</span><span class="token operator">:</span> <span class="token constant">T</span> <span class="token punctuation">{</span>\n  <span class="token keyword">return</span> arg\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/ipic/2020-08-27-062957.png" alt="copy number"></p>\n<p>如果我们传入一个对象就会有问题。</p>\n<p><img src="https://file.shenfq.com/ipic/2020-08-27-063107.png" alt="copy object"></p>\n<p><code>extends</code> 经常与 <code>keyof</code> 一起使用，例如我们有一个方法专门用来获取对象的值，但是这个对象并不确定，我们就可以使用 <code>extends</code> 和 <code>keyof</code> 进行约束。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">function</span> <span class="token generic-function"><span class="token function">getValue</span><span class="token generic class-name"><span class="token operator">&lt;</span><span class="token constant">T</span><span class="token punctuation">,</span> <span class="token constant">K</span> <span class="token keyword">extends</span> <span class="token keyword">keyof</span> <span class="token constant">T</span><span class="token operator">></span></span></span><span class="token punctuation">(</span>obj<span class="token operator">:</span> <span class="token constant">T</span><span class="token punctuation">,</span> key<span class="token operator">:</span> <span class="token constant">K</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">return</span> obj<span class="token punctuation">[</span>key<span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">const</span> obj <span class="token operator">=</span> <span class="token punctuation">{</span> a<span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span>\n<span class="token keyword">const</span> a <span class="token operator">=</span> <span class="token function">getValue</span><span class="token punctuation">(</span>obj<span class="token punctuation">,</span> <span class="token string">\'a\'</span><span class="token punctuation">)</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/ipic/2020-08-27-074835.png" alt="获取对象的值"></p>\n<p>这里的 getValue 方法就能根据传入的参数 obj 来约束 key 的值。</p>\n<h3 id="%E7%B1%BB%E5%9E%8B%E6%98%A0%E5%B0%84in">类型映射（in）<a class="anchor" href="#%E7%B1%BB%E5%9E%8B%E6%98%A0%E5%B0%84in">§</a></h3>\n<p><code>in</code> 关键词的作用主要是做类型的映射，遍历已有接口的 key 或者是遍历联合类型。下面使用内置的泛型接口 <code>Readonly</code> 来举例。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Readonly<span class="token operator">&lt;</span><span class="token constant">T</span><span class="token operator">></span></span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n    <span class="token keyword">readonly</span> <span class="token punctuation">[</span><span class="token constant">P</span> <span class="token keyword">in</span> <span class="token keyword">keyof</span> <span class="token constant">T</span><span class="token punctuation">]</span><span class="token operator">:</span> <span class="token constant">T</span><span class="token punctuation">[</span><span class="token constant">P</span><span class="token punctuation">]</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span><span class="token punctuation">;</span>\n\n<span class="token keyword">interface</span> <span class="token class-name">Obj</span> <span class="token punctuation">{</span>\n  a<span class="token operator">:</span> <span class="token builtin">string</span>\n  b<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">type</span> <span class="token class-name">ReadOnlyObj</span> <span class="token operator">=</span> Readonly<span class="token operator">&lt;</span>Obj<span class="token operator">></span>\n</code></pre>\n<p><img src="https://file.shenfq.com/ipic/2020-08-27-075646.png" alt="ReadOnlyObj"></p>\n<p>我们可以结构下这个逻辑，首先 <code>keyof Obj</code> 得到一个联合类型 <code>\'a\' | \'b\'</code>。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">Obj</span> <span class="token punctuation">{</span>\n    a<span class="token operator">:</span> <span class="token builtin">string</span>\n    b<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">type</span> <span class="token class-name">ObjKeys</span> <span class="token operator">=</span> <span class="token string">\'a\'</span> <span class="token operator">|</span> <span class="token string">\'b\'</span>\n\n<span class="token keyword">type</span> <span class="token class-name">ReadOnlyObj</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n    <span class="token keyword">readonly</span> <span class="token punctuation">[</span><span class="token constant">P</span> <span class="token keyword">in</span> ObjKeys<span class="token punctuation">]</span><span class="token operator">:</span> Obj<span class="token punctuation">[</span><span class="token constant">P</span><span class="token punctuation">]</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>然后 <code>P in ObjKeys</code> 相当于执行了一次 forEach 的逻辑，遍历 <code>\'a\' | \'b\'</code></p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">ReadOnlyObj</span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n    <span class="token keyword">readonly</span> a<span class="token operator">:</span> Obj<span class="token punctuation">[</span><span class="token string">\'a\'</span><span class="token punctuation">]</span><span class="token punctuation">;</span>\n    <span class="token keyword">readonly</span> b<span class="token operator">:</span> Obj<span class="token punctuation">[</span><span class="token string">\'b\'</span><span class="token punctuation">]</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>最后就可以得到一个新的接口。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">ReadOnlyObj</span> <span class="token punctuation">{</span>\n    <span class="token keyword">readonly</span> a<span class="token operator">:</span> <span class="token builtin">string</span><span class="token punctuation">;</span>\n    <span class="token keyword">readonly</span> b<span class="token operator">:</span> <span class="token builtin">string</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E6%9D%A1%E4%BB%B6%E7%B1%BB%E5%9E%8Bu--x--y">条件类型（U ? X : Y）<a class="anchor" href="#%E6%9D%A1%E4%BB%B6%E7%B1%BB%E5%9E%8Bu--x--y">§</a></h3>\n<p>条件类型的语法规则和三元表达式一致，经常用于一些类型不确定的情况。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token constant">T</span> <span class="token keyword">extends</span> <span class="token class-name"><span class="token constant">U</span></span> <span class="token operator">?</span> <span class="token constant">X</span> <span class="token operator">:</span> <span class="token constant">Y</span>\n</code></pre>\n<p>上面的意思就是，如果 T 是 U 的子集，就是类型 X，否则为类型 Y。下面使用内置的泛型接口 <code>Extract</code> 来举例。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Extract<span class="token operator">&lt;</span><span class="token constant">T</span><span class="token punctuation">,</span> <span class="token constant">U</span><span class="token operator">></span></span> <span class="token operator">=</span> <span class="token constant">T</span> <span class="token keyword">extends</span> <span class="token class-name"><span class="token constant">U</span></span> <span class="token operator">?</span> <span class="token constant">T</span> <span class="token operator">:</span> <span class="token builtin">never</span><span class="token punctuation">;</span>\n</code></pre>\n<p>如果 T 中的类型在 U 存在，则返回，否则抛弃。假设我们两个类，有三个公共的属性，可以通过 Extract 提取这三个公共属性。</p>\n<pre class="language-tsx"><code class="language-tsx"><span class="token keyword">interface</span> <span class="token class-name">Worker</span> <span class="token punctuation">{</span>\n  name<span class="token operator">:</span> <span class="token builtin">string</span>\n  age<span class="token operator">:</span> <span class="token builtin">number</span>\n  email<span class="token operator">:</span> <span class="token builtin">string</span>\n  salary<span class="token operator">:</span> <span class="token builtin">number</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">interface</span> <span class="token class-name">Student</span> <span class="token punctuation">{</span>\n  name<span class="token operator">:</span> <span class="token builtin">string</span>\n  age<span class="token operator">:</span> <span class="token builtin">number</span>\n  email<span class="token operator">:</span> <span class="token builtin">string</span>\n  grade<span class="token operator">:</span> <span class="token builtin">number</span>\n<span class="token punctuation">}</span>\n\n\n<span class="token keyword">type</span> <span class="token class-name">CommonKeys</span> <span class="token operator">=</span> <span class="token maybe-class-name">Extract</span><span class="token operator">&lt;</span><span class="token keyword">keyof</span> <span class="token maybe-class-name">Worker</span><span class="token punctuation">,</span> <span class="token keyword">keyof</span> <span class="token maybe-class-name">Student</span><span class="token operator">></span>\n<span class="token comment">// \'name\' | \'age\' | \'email\'</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/ipic/2020-08-27-125507.png" alt="CommonKeys"></p>\n<h2 id="%E5%B7%A5%E5%85%B7%E6%B3%9B%E5%9E%8B">工具泛型<a class="anchor" href="#%E5%B7%A5%E5%85%B7%E6%B3%9B%E5%9E%8B">§</a></h2>\n<p>TypesScript 中内置了很多工具泛型，前面介绍过 <code>Readonly</code>、<code>Extract</code> 这两种，内置的泛型在 TypeScript 内置的 <code>lib.es5.d.ts</code> 中都有定义，所以不需要任何依赖都是可以直接使用的。下面看看一些经常使用的工具泛型吧。</p>\n<p><img src="https://file.shenfq.com/ipic/2020-08-27-133220.png" alt="lib.es5.d.ts"></p>\n<h3 id="partial">Partial<a class="anchor" href="#partial">§</a></h3>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Partial<span class="token operator">&lt;</span><span class="token constant">T</span><span class="token operator">></span></span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n    <span class="token punctuation">[</span><span class="token constant">P</span> <span class="token keyword">in</span> <span class="token keyword">keyof</span> <span class="token constant">T</span><span class="token punctuation">]</span><span class="token operator">?</span><span class="token operator">:</span> <span class="token constant">T</span><span class="token punctuation">[</span><span class="token constant">P</span><span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><code>Partial</code> 用于将一个接口的所有属性设置为可选状态，首先通过 <code>keyof T</code>，取出类型变量 <code>T</code> 的所有属性，然后通过 <code>in</code> 进行遍历，最后在属性后加上一个 <code>?</code>。</p>\n<p>我们通过 TypeScript 写 React 的组件的时候，如果组件的属性都有默认值的存在，我们就可以通过 <code>Partial</code> 将属性值都变成可选值。</p>\n<pre class="language-tsx"><code class="language-tsx"><span class="token keyword">import</span> <span class="token imports"><span class="token maybe-class-name">React</span></span> <span class="token keyword">from</span> <span class="token string">\'react\'</span>\n\n<span class="token keyword">interface</span> <span class="token class-name">ButtonProps</span> <span class="token punctuation">{</span>\n  <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">\'button\'</span> <span class="token operator">|</span> <span class="token string">\'submit\'</span> <span class="token operator">|</span> <span class="token string">\'reset\'</span>\n  text<span class="token operator">:</span> <span class="token builtin">string</span>\n  disabled<span class="token operator">:</span> <span class="token builtin">boolean</span>\n  <span class="token function-variable function">onClick</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token keyword">void</span>\n<span class="token punctuation">}</span>\n\n<span class="token comment">// 将按钮组件的 props 的属性都改为可选</span>\n<span class="token keyword">const</span> render <span class="token operator">=</span> <span class="token punctuation">(</span>props<span class="token operator">:</span> <span class="token maybe-class-name">Partial</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">ButtonProps</span></span><span class="token punctuation">></span></span><span class="token plain-text"> = </span><span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token plain-text">) => </span><span class="token punctuation">{</span>\n  <span class="token keyword">const</span> baseProps <span class="token operator">=</span> <span class="token punctuation">{</span>\n    disabled<span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>\n    <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">\'button\'</span><span class="token punctuation">,</span>\n    text<span class="token operator">:</span> <span class="token string">\'Hello World\'</span><span class="token punctuation">,</span>\n    <span class="token function-variable function">onClick</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token punctuation">}</span>\n  <span class="token keyword">const</span> options <span class="token operator">=</span> <span class="token punctuation">{</span> <span class="token spread operator">...</span>baseProps<span class="token punctuation">,</span> <span class="token spread operator">...</span>props <span class="token punctuation">}</span>\n  <span class="token keyword">return</span> <span class="token punctuation">(</span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span>\n      <span class="token attr-name">type</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span>options<span class="token punctuation">.</span><span class="token keyword">type</span><span class="token punctuation">}</span></span>\n      <span class="token attr-name">disabled</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span>options<span class="token punctuation">.</span><span class="token property-access">disabled</span><span class="token punctuation">}</span></span>\n      <span class="token attr-name">onClick</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span>options<span class="token punctuation">.</span><span class="token property-access">onClick</span><span class="token punctuation">}</span></span><span class="token punctuation">></span></span><span class="token plain-text">\n      </span><span class="token punctuation">{</span>options<span class="token punctuation">.</span><span class="token property-access">text</span><span class="token punctuation">}</span><span class="token plain-text">\n    </span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">></span></span>\n  <span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token plain-text">\n</span></code></pre>\n<h3 id="required">Required<a class="anchor" href="#required">§</a></h3>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Required<span class="token operator">&lt;</span><span class="token constant">T</span><span class="token operator">></span></span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n    <span class="token punctuation">[</span><span class="token constant">P</span> <span class="token keyword">in</span> <span class="token keyword">keyof</span> <span class="token constant">T</span><span class="token punctuation">]</span><span class="token operator">-</span><span class="token operator">?</span><span class="token operator">:</span> <span class="token constant">T</span><span class="token punctuation">[</span><span class="token constant">P</span><span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><code>Required</code> 的作用刚好与  <code>Partial</code> 相反，就是将接口中所有可选的属性改为必须的，区别就是把 <code>Partial</code> 里面的 <code>?</code> 替换成了 <code>-?</code>。</p>\n<h3 id="record">Record<a class="anchor" href="#record">§</a></h3>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Record<span class="token operator">&lt;</span><span class="token constant">K</span> <span class="token keyword">extends</span> <span class="token keyword">keyof</span> <span class="token builtin">any</span><span class="token punctuation">,</span> <span class="token constant">T</span><span class="token operator">></span></span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n    <span class="token punctuation">[</span><span class="token constant">P</span> <span class="token keyword">in</span> <span class="token constant">K</span><span class="token punctuation">]</span><span class="token operator">:</span> <span class="token constant">T</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><code>Record</code> 接受两个类型变量，<code>Record</code> 生成的类型具有类型 K 中存在的属性，值为类型 T。这里有一个比较疑惑的点就是给类型 K 加一个类型约束，<code>extends keyof any</code>，我们可以先看看 <code>keyof any</code> 是个什么东西。</p>\n<p><img src="https://file.shenfq.com/ipic/2020-08-27-132145.png" alt="keyof any"></p>\n<p>大致一直就是类型  K 被约束在 <code>string | number | symbol</code> 中，刚好就是对象的索引的类型，也就是类型 K 只能指定为这几种类型。</p>\n<p>我们在业务代码中经常会构造某个对象的数组，但是数组不方便索引，所以我们有时候会把对象的某个字段拿出来作为索引，然后构造一个新的对象。假设有个商品列表的数组，要在商品列表中找到商品名为 「每日坚果」的商品，我们一般通过遍历数组的方式来查找，比较繁琐，为了方便，我们就会把这个数组改写成对象。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">Goods</span> <span class="token punctuation">{</span>\n  id<span class="token operator">:</span> <span class="token builtin">string</span>\n  name<span class="token operator">:</span> <span class="token builtin">string</span>\n  price<span class="token operator">:</span> <span class="token builtin">string</span>\n  image<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">const</span> goodsMap<span class="token operator">:</span> Record<span class="token operator">&lt;</span><span class="token builtin">string</span><span class="token punctuation">,</span> Goods<span class="token operator">></span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n<span class="token keyword">const</span> goodsList<span class="token operator">:</span> Goods<span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token string">\'server.com/goods/list\'</span><span class="token punctuation">)</span>\n\ngoodsList<span class="token punctuation">.</span><span class="token function">forEach</span><span class="token punctuation">(</span>goods <span class="token operator">=></span> <span class="token punctuation">{</span>\n  goodsMap<span class="token punctuation">[</span>goods<span class="token punctuation">.</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> goods\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<h3 id="pick">Pick<a class="anchor" href="#pick">§</a></h3>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Pick<span class="token operator">&lt;</span><span class="token constant">T</span><span class="token punctuation">,</span> <span class="token constant">K</span> <span class="token keyword">extends</span> <span class="token keyword">keyof</span> <span class="token constant">T</span><span class="token operator">></span></span> <span class="token operator">=</span> <span class="token punctuation">{</span>\n    <span class="token punctuation">[</span><span class="token constant">P</span> <span class="token keyword">in</span> <span class="token constant">K</span><span class="token punctuation">]</span><span class="token operator">:</span> <span class="token constant">T</span><span class="token punctuation">[</span><span class="token constant">P</span><span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><code>Pick</code> 主要用于提取接口的某几个属性。做过 Todo 工具的同学都知道，Todo工具只有编辑的时候才会填写描述信息，预览的时候只有标题和完成状态，所以我们可以通过 <code>Pick</code> 工具，提取 Todo 接口的两个属性，生成一个新的类型 TodoPreview。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">Todo</span> <span class="token punctuation">{</span>\n  title<span class="token operator">:</span> <span class="token builtin">string</span>\n  completed<span class="token operator">:</span> <span class="token builtin">boolean</span>\n  description<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">type</span> <span class="token class-name">TodoPreview</span> <span class="token operator">=</span> Pick<span class="token operator">&lt;</span>Todo<span class="token punctuation">,</span> <span class="token string">"title"</span> <span class="token operator">|</span> <span class="token string">"completed"</span><span class="token operator">></span>\n\n<span class="token keyword">const</span> todo<span class="token operator">:</span> TodoPreview <span class="token operator">=</span> <span class="token punctuation">{</span>\n  title<span class="token operator">:</span> <span class="token string">\'Clean room\'</span><span class="token punctuation">,</span>\n  completed<span class="token operator">:</span> <span class="token boolean">false</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/ipic/2020-08-27-134906.png" alt="TodoPreview"></p>\n<h3 id="exclude">Exclude<a class="anchor" href="#exclude">§</a></h3>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Exclude<span class="token operator">&lt;</span><span class="token constant">T</span><span class="token punctuation">,</span> <span class="token constant">U</span><span class="token operator">></span></span> <span class="token operator">=</span> <span class="token constant">T</span> <span class="token keyword">extends</span> <span class="token class-name"><span class="token constant">U</span></span> <span class="token operator">?</span> <span class="token builtin">never</span> <span class="token operator">:</span> <span class="token constant">T</span>\n</code></pre>\n<p><code>Exclude</code> 的作用与之前介绍过的 <code>Extract</code> 刚好相反，如果 T 中的类型在 U 不存在，则返回，否则抛弃。现在我们拿之前的两个类举例，看看 <code>Exclude</code> 的返回结果。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">Worker</span> <span class="token punctuation">{</span>\n  name<span class="token operator">:</span> <span class="token builtin">string</span>\n  age<span class="token operator">:</span> <span class="token builtin">number</span>\n  email<span class="token operator">:</span> <span class="token builtin">string</span>\n  salary<span class="token operator">:</span> <span class="token builtin">number</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">interface</span> <span class="token class-name">Student</span> <span class="token punctuation">{</span>\n  name<span class="token operator">:</span> <span class="token builtin">string</span>\n  age<span class="token operator">:</span> <span class="token builtin">number</span>\n  email<span class="token operator">:</span> <span class="token builtin">string</span>\n  grade<span class="token operator">:</span> <span class="token builtin">number</span>\n<span class="token punctuation">}</span>\n\n\n<span class="token keyword">type</span> <span class="token class-name">ExcludeKeys</span> <span class="token operator">=</span> Exclude<span class="token operator">&lt;</span><span class="token keyword">keyof</span> Worker<span class="token punctuation">,</span> <span class="token keyword">keyof</span> Student<span class="token operator">></span>\n<span class="token comment">// \'salary\'</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/ipic/2020-08-28-021608.png" alt="ExcludeKeys"></p>\n<p>取出的是 Worker 在 Student 中不存在的 <code>salary</code>。</p>\n<h3 id="omit">Omit<a class="anchor" href="#omit">§</a></h3>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">type</span> <span class="token class-name">Omit<span class="token operator">&lt;</span><span class="token constant">T</span><span class="token punctuation">,</span> <span class="token constant">K</span> <span class="token keyword">extends</span> <span class="token keyword">keyof</span> <span class="token builtin">any</span><span class="token operator">></span></span> <span class="token operator">=</span> Pick<span class="token operator">&lt;</span>\n  <span class="token constant">T</span><span class="token punctuation">,</span> Exclude<span class="token operator">&lt;</span><span class="token keyword">keyof</span> <span class="token constant">T</span><span class="token punctuation">,</span> <span class="token constant">K</span><span class="token operator">></span>\n<span class="token operator">></span>\n</code></pre>\n<p><code>Omit</code> 的作用刚好和 Pick 相反，先通过 <code>Exclude&lt;keyof T, K&gt;</code> 先取出类型 T 中存在，但是 K 不存在的属性，然后再由这些属性构造一个新的类型。还是通过前面的 Todo 案例来说，TodoPreview 类型只需要排除接口的 description 属性即可，写法上比之前 Pick 精简了一些。</p>\n<pre class="language-ts"><code class="language-ts"><span class="token keyword">interface</span> <span class="token class-name">Todo</span> <span class="token punctuation">{</span>\n  title<span class="token operator">:</span> <span class="token builtin">string</span>\n  completed<span class="token operator">:</span> <span class="token builtin">boolean</span>\n  description<span class="token operator">:</span> <span class="token builtin">string</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">type</span> <span class="token class-name">TodoPreview</span> <span class="token operator">=</span> Omit<span class="token operator">&lt;</span>Todo<span class="token punctuation">,</span> <span class="token string">"description"</span><span class="token operator">></span>\n\n<span class="token keyword">const</span> todo<span class="token operator">:</span> TodoPreview <span class="token operator">=</span> <span class="token punctuation">{</span>\n  title<span class="token operator">:</span> <span class="token string">\'Clean room\'</span><span class="token punctuation">,</span>\n  completed<span class="token operator">:</span> <span class="token boolean">false</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/ipic/2020-08-28-022345.png" alt="TodoPreview"></p>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>如果只是掌握了 TypeScript 的一些基础类型，可能很难游刃有余的去使用 TypeScript，而且最近 TypeScript 发布了 4.0 的版本新增了更多功能，想要用好它只能不断的学习和掌握它。希望阅读本文的朋友都能有所收获，摆脱 AnyScript。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -64,7 +63,7 @@ export default {
         "张家喜"
     ],
     'date': "2020/08/28",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "前言 对于有 JavaScript 基础的同学来说，入门 TypeScript 其实很容易，只需要简单掌握其基础的类型系统就可以逐步将 JS 应用过渡到 TS 应用。 // js const double = (num) => 2 * num // ts const double = (num: number): nu...",
     'cover': "https://file.shenfq.com/ipic/2020-08-26-135150.png",
     'categories': [
@@ -84,7 +83,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -104,7 +103,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -127,7 +126,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -149,7 +148,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -169,7 +168,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -189,7 +188,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -210,7 +209,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -230,7 +229,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -251,7 +250,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -271,7 +270,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -292,7 +291,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -312,7 +311,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -333,7 +332,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -356,7 +355,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -376,7 +375,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -396,7 +395,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -419,7 +418,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -440,7 +439,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -462,7 +461,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -484,7 +483,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -505,7 +504,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -526,7 +525,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -548,7 +547,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -570,7 +569,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -591,7 +590,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -612,7 +611,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -633,7 +632,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -654,7 +653,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -675,7 +674,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -696,7 +695,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -718,7 +717,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -741,7 +740,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -762,7 +761,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -784,7 +783,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -803,7 +802,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -825,7 +824,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -846,7 +845,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -868,7 +867,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -888,7 +887,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -909,7 +908,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -932,7 +931,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -956,7 +955,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -979,7 +978,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -998,7 +997,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1017,7 +1016,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1041,7 +1040,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1062,7 +1061,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1085,7 +1084,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1106,7 +1105,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1126,7 +1125,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1148,7 +1147,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1169,7 +1168,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1190,7 +1189,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1213,7 +1212,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1235,7 +1234,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1256,7 +1255,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1276,7 +1275,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1297,7 +1296,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1318,7 +1317,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1339,7 +1338,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1361,7 +1360,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1381,7 +1380,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1401,7 +1400,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1422,7 +1421,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1443,7 +1442,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1463,7 +1462,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1484,7 +1483,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1505,7 +1504,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1526,7 +1525,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

@@ -9,7 +9,6 @@ export default {
             __html: '<h1>seajs源码解读</h1>\n<p>近几年前端工程化越来越完善，打包工具也已经是前端标配了，像seajs这种老古董早已停止维护，而且使用的人估计也几个了。但这并不能阻止好奇的我，为了了解当年的前端前辈们是如何在浏览器进行代码模块化的，我鼓起勇气翻开了Seajs的源码。下面就和我一起细细品味Seajs源码吧。</p>\n<!-- more -->\n<h2 id="%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8seajs">如何使用seajs<a class="anchor" href="#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8seajs">§</a></h2>\n<p>在看Seajs源码之前，先看看Seajs是如何使用的，毕竟刚入行的时候，大家就都使用browserify、webpack之类的东西了，还从来没有用过Seajs。</p>\n<pre class="language-html"><code class="language-html"><span class="token comment">&lt;!-- 首先在页面中引入sea.js，也可以使用CDN资源 --></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>text/javascript<span class="token punctuation">"</span></span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>./sea.js<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span><span class="token punctuation">></span></span><span class="token script"><span class="token language-javascript">\n<span class="token comment">// 设置一些参数</span>\nseajs<span class="token punctuation">.</span><span class="token method function property-access">config</span><span class="token punctuation">(</span><span class="token punctuation">{</span>\n  debug<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span> <span class="token comment">// debug为false时，在模块加载完毕后会移除head中的script标签</span>\n  base<span class="token operator">:</span> <span class="token string">\'./js/\'</span><span class="token punctuation">,</span> <span class="token comment">// 通过路径加载其他模块的默认根目录</span>\n  alias<span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token comment">// 别名</span>\n    jquery<span class="token operator">:</span> <span class="token string">\'<a class="token url-link" href="https://cdn.bootcss.com/jquery/3.2.1/jquery">https://cdn.bootcss.com/jquery/3.2.1/jquery</a>\'</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\nseajs<span class="token punctuation">.</span><span class="token method function property-access">use</span><span class="token punctuation">(</span><span class="token string">\'main\'</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">main</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token function">alert</span><span class="token punctuation">(</span>main<span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">></span></span>\n\n//main.js\ndefine(function (require, exports, module) {\n  // require(\'jquery\')\n  // var $ = window.$\n\n  module.exports = \'main-module\'\n})\n</code></pre>\n<h2 id="seajs%E7%9A%84%E5%8F%82%E6%95%B0%E9%85%8D%E7%BD%AE">seajs的参数配置<a class="anchor" href="#seajs%E7%9A%84%E5%8F%82%E6%95%B0%E9%85%8D%E7%BD%AE">§</a></h2>\n<p>首先通过script导入seajs，然后对seajs进行一些配置。seajs的配置参数很多具体不详细介绍，seajs将配置项会存入一个私有对象data中，并且如果之前有设置过某个属性，并且这个属性是数组或者对象，会将新值与旧值进行合并。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token punctuation">(</span><span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">global<span class="token punctuation">,</span> <span class="token keyword nil">undefined</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>global<span class="token punctuation">.</span><span class="token property-access">seajs</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">return</span>\n  <span class="token punctuation">}</span>\n  <span class="token keyword">var</span> data <span class="token operator">=</span> seajs<span class="token punctuation">.</span><span class="token property-access">data</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n  \n  seajs<span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">config</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">configData</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> key <span class="token keyword">in</span> configData<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword">var</span> curr <span class="token operator">=</span> configData<span class="token punctuation">[</span>key<span class="token punctuation">]</span> <span class="token comment">// 获取当前配置</span>\n      <span class="token keyword">var</span> prev <span class="token operator">=</span> data<span class="token punctuation">[</span>key<span class="token punctuation">]</span> <span class="token comment">// 获取之前的配置</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>prev <span class="token operator">&amp;&amp;</span> <span class="token function">isObject</span><span class="token punctuation">(</span>prev<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">// 如果之前已经设置过，且为一个对象</span>\n        <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> k <span class="token keyword">in</span> curr<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          prev<span class="token punctuation">[</span>k<span class="token punctuation">]</span> <span class="token operator">=</span> curr<span class="token punctuation">[</span>k<span class="token punctuation">]</span> <span class="token comment">// 用新值覆盖旧值，旧值保留不变</span>\n        <span class="token punctuation">}</span>\n      <span class="token punctuation">}</span>\n      <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n        <span class="token comment">// 如果之前的值为数组，进行concat</span>\n        <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token function">isArray</span><span class="token punctuation">(</span>prev<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          curr <span class="token operator">=</span> prev<span class="token punctuation">.</span><span class="token method function property-access">concat</span><span class="token punctuation">(</span>curr<span class="token punctuation">)</span>\n        <span class="token punctuation">}</span>\n        <span class="token comment">// 确保 base 为一个路径</span>\n        <span class="token keyword control-flow">else</span> <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>key <span class="token operator">===</span> <span class="token string">"base"</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n          <span class="token comment">// 必须已 "/" 结尾</span>\n          <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>curr<span class="token punctuation">.</span><span class="token method function property-access">slice</span><span class="token punctuation">(</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token operator">!==</span> <span class="token string">"/"</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n            curr <span class="token operator">+=</span> <span class="token string">"/"</span>\n          <span class="token punctuation">}</span>\n          curr <span class="token operator">=</span> <span class="token function">addBase</span><span class="token punctuation">(</span>curr<span class="token punctuation">)</span> <span class="token comment">// 转换为绝对路径</span>\n        <span class="token punctuation">}</span>\n\n        <span class="token comment">// Set config</span>\n        data<span class="token punctuation">[</span>key<span class="token punctuation">]</span> <span class="token operator">=</span> curr  \n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n</code></pre>\n<p>设置的时候还有个比较特殊的地方，就是base这个属性。这表示所有模块加载的基础路径，所以格式必须为一个路径，并且该路径最后会转换为绝对路径。比如，我的配置为<code>base: \'./js\'</code>，我当前访问的域名为<code>http://qq.com/web/index.html</code>，最后base属性会被转化为<code>http://qq.com/web/js/</code>。然后，所有依赖的模块id都会根据该路径转换为uri，除非有定义其他配置，关于配置点到为止，到用到的地方再来细说。</p>\n<h2 id="%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD%E4%B8%8E%E6%89%A7%E8%A1%8C">模块的加载与执行<a class="anchor" href="#%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD%E4%B8%8E%E6%89%A7%E8%A1%8C">§</a></h2>\n<p>下面我们调用了use方法，该方法就是用来加载模块的地方，类似与requirejs中的require方法。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token comment">// requirejs</span>\n<span class="token function">require</span><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token string">\'main\'</span><span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">main</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span>main<span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n</code></pre>\n<p>只是这里的依赖项，seajs可以传入字符串，而requirejs必须为一个数组，seajs会将字符串转为数组，在内部seajs.use会直接调用Module.use。这个Module为一个构造函数，里面挂载了所有与模块加载相关的方法，还有很多静态方法，比如实例化Module、转换模块id为uri、定义模块等等，废话不多说直接看代码。</p>\n<pre class="language-javascript"><code class="language-javascript">seajs<span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">use</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">ids<span class="token punctuation">,</span> callback</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">use</span><span class="token punctuation">(</span>ids<span class="token punctuation">,</span> callback<span class="token punctuation">,</span> data<span class="token punctuation">.</span><span class="token property-access">cwd</span> <span class="token operator">+</span> <span class="token string">"_use_"</span> <span class="token operator">+</span> <span class="token function">cid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>\n  <span class="token keyword control-flow">return</span> seajs\n<span class="token punctuation">}</span>\n\n<span class="token comment">// 该方法用来加载一个匿名模块</span>\n<span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">use</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">ids<span class="token punctuation">,</span> callback<span class="token punctuation">,</span> uri</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">//如果是通过seajs.use调用，uri是自动生成的</span>\n  <span class="token keyword">var</span> mod <span class="token operator">=</span> <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">get</span><span class="token punctuation">(</span>\n    uri<span class="token punctuation">,</span>\n    <span class="token function">isArray</span><span class="token punctuation">(</span>ids<span class="token punctuation">)</span> <span class="token operator">?</span> ids <span class="token operator">:</span> <span class="token punctuation">[</span>ids<span class="token punctuation">]</span> <span class="token comment">// 这里会将依赖模块转成数组</span>\n  <span class="token punctuation">)</span>\n\n  mod<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>mod<span class="token punctuation">)</span> <span class="token comment">// 表示当前模块的入口为本身，后面还会把这个值传入他的依赖模块</span>\n  mod<span class="token punctuation">.</span><span class="token property-access">history</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n  mod<span class="token punctuation">.</span><span class="token property-access">remain</span> <span class="token operator">=</span> <span class="token number">1</span> <span class="token comment">// 这个值后面会用来标识依赖模块是否已经全部加载完毕</span>\n\n  mod<span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">callback</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">//设置模块加载完毕的回调，这一部分很重要，尤其是exec方法</span>\n    <span class="token keyword">var</span> exports <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n    <span class="token keyword">var</span> uris <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span> len <span class="token operator">=</span> uris<span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> len<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      exports<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> cachedMods<span class="token punctuation">[</span>uris<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token method function property-access">exec</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>callback<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      callback<span class="token punctuation">.</span><span class="token method function property-access">apply</span><span class="token punctuation">(</span>global<span class="token punctuation">,</span> exports<span class="token punctuation">)</span> <span class="token comment">//执行回调</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n\n  mod<span class="token punctuation">.</span><span class="token method function property-access">load</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这个use方法一共做了三件事：</p>\n<ol>\n<li>调用Module.get，进行Module实例化</li>\n<li>为模块绑定回调函数</li>\n<li>调用load，进行依赖模块的加载</li>\n</ol>\n<h3 id="%E5%AE%9E%E4%BE%8B%E5%8C%96%E6%A8%A1%E5%9D%97%E4%B8%80%E5%88%87%E7%9A%84%E5%BC%80%E7%AB%AF">实例化模块，一切的开端<a class="anchor" href="#%E5%AE%9E%E4%BE%8B%E5%8C%96%E6%A8%A1%E5%9D%97%E4%B8%80%E5%88%87%E7%9A%84%E5%BC%80%E7%AB%AF">§</a></h3>\n<p>首先use方法调用了get静态方法，这个方法是对Module进行实例化，并且将实例化的对象存入到全局对象cachedMods中进行缓存，并且以uri作为模块的标识，如果之后有其他模块加载该模块就能直接在缓存中获取。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token keyword">var</span> cachedMods <span class="token operator">=</span> seajs<span class="token punctuation">.</span><span class="token property-access">cache</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span> <span class="token comment">// 模块的缓存对象</span>\n<span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">get</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">uri<span class="token punctuation">,</span> deps</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword control-flow">return</span> cachedMods<span class="token punctuation">[</span>uri<span class="token punctuation">]</span> <span class="token operator">||</span> <span class="token punctuation">(</span>cachedMods<span class="token punctuation">[</span>uri<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Module</span><span class="token punctuation">(</span>uri<span class="token punctuation">,</span> deps<span class="token punctuation">)</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n<span class="token keyword">function</span> <span class="token function"><span class="token maybe-class-name">Module</span></span><span class="token punctuation">(</span><span class="token parameter">uri<span class="token punctuation">,</span> deps</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">uri</span> <span class="token operator">=</span> uri\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">dependencies</span> <span class="token operator">=</span> deps <span class="token operator">||</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">deps</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span> <span class="token comment">// Ref the dependence modules</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">=</span> <span class="token number">0</span>\n  <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token property-access">_entry</span> <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>绑定的回调函数会在所有模块加载完毕之后调用，我们先跳过，直接看load方法。load方法会先把所有依赖的模块id转为uri，然后进行实例化，最后调用fetch方法，绑定模块加载成功或失败的回调，最后进行模块加载。具体代码如下<code>(代码经过精简)</code>：</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token comment">// 所有依赖加载完毕后执行 onload</span>\n<span class="token class-name">Module</span><span class="token punctuation">.</span><span class="token property-access">prototype</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">load</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> mod <span class="token operator">=</span> <span class="token keyword">this</span>\n  mod<span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">=</span> <span class="token constant">STATUS</span><span class="token punctuation">.</span><span class="token constant">LOADING</span> <span class="token comment">// 状态置为模块加载中</span>\n  \n  <span class="token comment">// 调用resolve方法，将模块id转为uri。</span>\n  <span class="token comment">// 比如之前的"mian"，会在前面加上我们之前设置的base，然后在后面拼上js后缀</span>\n  <span class="token comment">// 最后变成: "<a class="token url-link" href="http://qq.com/web/js/main.js">http://qq.com/web/js/main.js</a>"</span>\n  <span class="token keyword">var</span> uris <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n\n  <span class="token comment">// 遍历所有依赖项的uri，然后进行依赖模块的实例化</span>\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span> len <span class="token operator">=</span> uris<span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> len<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    mod<span class="token punctuation">.</span><span class="token property-access">deps</span><span class="token punctuation">[</span>mod<span class="token punctuation">.</span><span class="token property-access">dependencies</span><span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">get</span><span class="token punctuation">(</span>uris<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 将entry传入到所有的依赖模块，这个entry是我们在use方法的时候设置的</span>\n  mod<span class="token punctuation">.</span><span class="token method function property-access">pass</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  \n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>mod<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    mod<span class="token punctuation">.</span><span class="token method function property-access">onload</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token keyword control-flow">return</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 开始进行并行加载</span>\n  <span class="token keyword">var</span> requestCache <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n  <span class="token keyword">var</span> m\n\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span>i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> len<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    m <span class="token operator">=</span> cachedMods<span class="token punctuation">[</span>uris<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token comment">// 获取之前实例化的模块对象</span>\n    m<span class="token punctuation">.</span><span class="token method function property-access">fetch</span><span class="token punctuation">(</span>requestCache<span class="token punctuation">)</span> <span class="token comment">// 进行fetch</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 发送请求进行模块的加载</span>\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> requestUri <span class="token keyword">in</span> requestCache<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>requestCache<span class="token punctuation">.</span><span class="token method function property-access">hasOwnProperty</span><span class="token punctuation">(</span>requestUri<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      requestCache<span class="token punctuation">[</span>requestUri<span class="token punctuation">]</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">//调用 seajs.request</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E5%B0%86%E6%A8%A1%E5%9D%97id%E8%BD%AC%E4%B8%BAuri">将模块id转为uri<a class="anchor" href="#%E5%B0%86%E6%A8%A1%E5%9D%97id%E8%BD%AC%E4%B8%BAuri">§</a></h3>\n<p>resolve方法实现可以稍微看下，基本上是把config里面的参数拿出来，进行拼接uri的处理。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token class-name">Module</span><span class="token punctuation">.</span><span class="token property-access">prototype</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">resolve</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> mod <span class="token operator">=</span> <span class="token keyword">this</span>\n  <span class="token keyword">var</span> ids <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">dependencies</span> <span class="token comment">// 取出所有依赖模块的id</span>\n  <span class="token keyword">var</span> uris <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n  <span class="token comment">// 进行遍历操作</span>\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span> len <span class="token operator">=</span> ids<span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> len<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    uris<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span>ids<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">,</span> mod<span class="token punctuation">.</span><span class="token property-access">uri</span><span class="token punctuation">)</span> <span class="token comment">//将模块id转为uri</span>\n  <span class="token punctuation">}</span>\n  <span class="token keyword control-flow">return</span> uris\n<span class="token punctuation">}</span>\n\n<span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">resolve</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">id<span class="token punctuation">,</span> refUri</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> emitData <span class="token operator">=</span> <span class="token punctuation">{</span> id<span class="token operator">:</span> id<span class="token punctuation">,</span> refUri<span class="token operator">:</span> refUri <span class="token punctuation">}</span>\n  <span class="token keyword control-flow">return</span> seajs<span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span>emitData<span class="token punctuation">.</span><span class="token property-access">id</span><span class="token punctuation">,</span> refUri<span class="token punctuation">)</span> <span class="token comment">// 调用 id2Uri</span>\n<span class="token punctuation">}</span>\n\nseajs<span class="token punctuation">.</span><span class="token property-access">resolve</span> <span class="token operator">=</span> id2Uri\n\n<span class="token keyword">function</span> <span class="token function">id2Uri</span><span class="token punctuation">(</span><span class="token parameter">id<span class="token punctuation">,</span> refUri</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">// 将id转为uri，转换配置中的一些变量</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>id<span class="token punctuation">)</span> <span class="token keyword control-flow">return</span> <span class="token string">""</span>\n\n  id <span class="token operator">=</span> <span class="token function">parseAlias</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span>\n  id <span class="token operator">=</span> <span class="token function">parsePaths</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span>\n  id <span class="token operator">=</span> <span class="token function">parseAlias</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span>\n  id <span class="token operator">=</span> <span class="token function">parseVars</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span>\n  id <span class="token operator">=</span> <span class="token function">parseAlias</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span>\n  id <span class="token operator">=</span> <span class="token function">normalize</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span>\n  id <span class="token operator">=</span> <span class="token function">parseAlias</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span>\n\n  <span class="token keyword">var</span> uri <span class="token operator">=</span> <span class="token function">addBase</span><span class="token punctuation">(</span>id<span class="token punctuation">,</span> refUri<span class="token punctuation">)</span>\n  uri <span class="token operator">=</span> <span class="token function">parseAlias</span><span class="token punctuation">(</span>uri<span class="token punctuation">)</span>\n  uri <span class="token operator">=</span> <span class="token function">parseMap</span><span class="token punctuation">(</span>uri<span class="token punctuation">)</span>\n  <span class="token keyword control-flow">return</span> uri\n<span class="token punctuation">}</span>\n</code></pre>\n<p>最后就是调用了<code>id2Uri</code>，将id转为uri，其中调用了很多的<code>parse</code>方法，这些方法不一一去看，原理大致一样，主要看下<code>parseAlias</code>。如果这个id有定义过alias，将alias取出，比如id为<code>&quot;jquery&quot;</code>，之前在定义alias中又有定义<code>jquery: \'https://cdn.bootcss.com/jquery/3.2.1/jquery\'</code>，则将id转化为<code>\'https://cdn.bootcss.com/jquery/3.2.1/jquery\'</code>。代码如下：</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token keyword">function</span> <span class="token function">parseAlias</span><span class="token punctuation">(</span><span class="token parameter">id</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">//如果有定义alias，将id替换为别名对应的地址</span>\n  <span class="token keyword">var</span> alias <span class="token operator">=</span> data<span class="token punctuation">.</span><span class="token property-access">alias</span>\n  <span class="token keyword control-flow">return</span> alias <span class="token operator">&amp;&amp;</span> <span class="token function">isString</span><span class="token punctuation">(</span>alias<span class="token punctuation">[</span>id<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token operator">?</span> alias<span class="token punctuation">[</span>id<span class="token punctuation">]</span> <span class="token operator">:</span> id\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E4%B8%BA%E4%BE%9D%E8%B5%96%E6%B7%BB%E5%8A%A0%E5%85%A5%E5%8F%A3%E6%96%B9%E4%BE%BF%E8%BF%BD%E6%A0%B9%E6%BA%AF%E6%BA%90">为依赖添加入口，方便追根溯源<a class="anchor" href="#%E4%B8%BA%E4%BE%9D%E8%B5%96%E6%B7%BB%E5%8A%A0%E5%85%A5%E5%8F%A3%E6%96%B9%E4%BE%BF%E8%BF%BD%E6%A0%B9%E6%BA%AF%E6%BA%90">§</a></h3>\n<p>resolve之后获得uri，通过uri进行Module的实例化，然后调用pass方法，这个方法主要是记录入口模块到底有多少个未加载的依赖项，存入到remain中，并将entry都存入到依赖模块的_entry属性中，方便回溯。而这个remain用于计数，最后onload的模块数与remain相等就激活entry模块的回调。具体代码如下<code>(代码经过精简)</code>：</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token class-name">Module</span><span class="token punctuation">.</span><span class="token property-access">prototype</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">pass</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> mod <span class="token operator">=</span> <span class="token keyword">this</span>\n  <span class="token keyword">var</span> len <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">dependencies</span><span class="token punctuation">.</span><span class="token property-access">length</span>\n\n  <span class="token comment">// 遍历入口模块的_entry属性，这个属性一般只有一个值，就是它本身</span>\n  <span class="token comment">// 具体可以回去看use方法 -> mod._entry.push(mod)</span>\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> mod<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">var</span> entry <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token comment">// 获取入口模块</span>\n    <span class="token keyword">var</span> count <span class="token operator">=</span> <span class="token number">0</span> <span class="token comment">// 计数器，用于统计未进行加载的模块</span>\n    <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> j <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> j <span class="token operator">&lt;</span> len<span class="token punctuation">;</span> j<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token keyword">var</span> m <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">deps</span><span class="token punctuation">[</span>mod<span class="token punctuation">.</span><span class="token property-access">dependencies</span><span class="token punctuation">[</span>j<span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token comment">//取出依赖的模块</span>\n      <span class="token comment">// 如果模块未加载，并且在entry中未使用，将entry传递给依赖</span>\n      <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>m<span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">&lt;</span> <span class="token constant">STATUS</span><span class="token punctuation">.</span><span class="token constant">LOADED</span> <span class="token operator">&amp;&amp;</span> <span class="token operator">!</span>entry<span class="token punctuation">.</span><span class="token property-access">history</span><span class="token punctuation">.</span><span class="token method function property-access">hasOwnProperty</span><span class="token punctuation">(</span>m<span class="token punctuation">.</span><span class="token property-access">uri</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        entry<span class="token punctuation">.</span><span class="token property-access">history</span><span class="token punctuation">[</span>m<span class="token punctuation">.</span><span class="token property-access">uri</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token boolean">true</span> <span class="token comment">// 在入口模块标识曾经加载过该依赖模块</span>\n        count<span class="token operator">++</span>\n        m<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>entry<span class="token punctuation">)</span> <span class="token comment">// 将入口模块存入依赖模块的_entry属性</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n    <span class="token comment">// 如果未加载的依赖模块大于0</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>count <span class="token operator">></span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 这里`count - 1`的原因也可以回去看use方法 -> mod.remain = 1</span>\n      <span class="token comment">// remain的初始值就是1，表示默认就会有一个未加载的模块，所有需要减1</span>\n      entry<span class="token punctuation">.</span><span class="token property-access">remain</span> <span class="token operator">+=</span> count <span class="token operator">-</span> <span class="token number">1</span>\n      <span class="token comment">// 如果有未加载的依赖项，则移除掉入口模块的entry</span>\n      mod<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">.</span><span class="token method function property-access">shift</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n      i<span class="token operator">--</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E5%A6%82%E4%BD%95%E5%8F%91%E8%B5%B7%E8%AF%B7%E6%B1%82%E4%B8%8B%E8%BD%BD%E5%85%B6%E4%BB%96%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97">如何发起请求，下载其他依赖模块？<a class="anchor" href="#%E5%A6%82%E4%BD%95%E5%8F%91%E8%B5%B7%E8%AF%B7%E6%B1%82%E4%B8%8B%E8%BD%BD%E5%85%B6%E4%BB%96%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97">§</a></h3>\n<p>总的来说pass方法就是记录了remain的数值，接下来就是重头戏了，调用所有依赖项的fetch方法，然后进行依赖模块的加载。调用fetch方法的时候会传入一个requestCache对象，该对象用来缓存所有依赖模块的request方法。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token keyword">var</span> requestCache <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n<span class="token keyword control-flow">for</span> <span class="token punctuation">(</span>i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> len<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  m <span class="token operator">=</span> cachedMods<span class="token punctuation">[</span>uris<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token comment">// 获取之前实例化的模块对象</span>\n  m<span class="token punctuation">.</span><span class="token method function property-access">fetch</span><span class="token punctuation">(</span>requestCache<span class="token punctuation">)</span> <span class="token comment">// 进行fetch</span>\n<span class="token punctuation">}</span>\n\n<span class="token class-name">Module</span><span class="token punctuation">.</span><span class="token property-access">prototype</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">fetch</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">requestCache</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> mod <span class="token operator">=</span> <span class="token keyword">this</span>\n  <span class="token keyword">var</span> uri <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">uri</span>\n\n  mod<span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">=</span> <span class="token constant">STATUS</span><span class="token punctuation">.</span><span class="token constant">FETCHING</span>\n  callbackList<span class="token punctuation">[</span>requestUri<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">[</span>mod<span class="token punctuation">]</span>\n\n  <span class="token function">emit</span><span class="token punctuation">(</span><span class="token string">"request"</span><span class="token punctuation">,</span> emitData <span class="token operator">=</span> <span class="token punctuation">{</span> <span class="token comment">// 设置加载script时的一些数据</span>\n    uri<span class="token operator">:</span> uri<span class="token punctuation">,</span>\n    requestUri<span class="token operator">:</span> requestUri<span class="token punctuation">,</span>\n    onRequest<span class="token operator">:</span> onRequest<span class="token punctuation">,</span>\n    charset<span class="token operator">:</span> <span class="token function">isFunction</span><span class="token punctuation">(</span>data<span class="token punctuation">.</span><span class="token property-access">charset</span><span class="token punctuation">)</span> <span class="token operator">?</span> data<span class="token punctuation">.</span><span class="token method function property-access">charset</span><span class="token punctuation">(</span>requestUri<span class="token punctuation">)</span> <span class="token operator">:</span> data<span class="token punctuation">.</span><span class="token property-access">charset</span><span class="token punctuation">,</span>\n    crossorigin<span class="token operator">:</span> <span class="token function">isFunction</span><span class="token punctuation">(</span>data<span class="token punctuation">.</span><span class="token property-access">crossorigin</span><span class="token punctuation">)</span> <span class="token operator">?</span> data<span class="token punctuation">.</span><span class="token method function property-access">crossorigin</span><span class="token punctuation">(</span>requestUri<span class="token punctuation">)</span> <span class="token operator">:</span> data<span class="token punctuation">.</span><span class="token property-access">crossorigin</span>\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>emitData<span class="token punctuation">.</span><span class="token property-access">requested</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">//发送请求加载js文件</span>\n    requestCache<span class="token punctuation">[</span>emitData<span class="token punctuation">.</span><span class="token property-access">requestUri</span><span class="token punctuation">]</span> <span class="token operator">=</span> sendRequest\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword">function</span> <span class="token function">sendRequest</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">// 被request方法，最终会调用 seajs.request</span>\n    seajs<span class="token punctuation">.</span><span class="token method function property-access">request</span><span class="token punctuation">(</span>emitData<span class="token punctuation">.</span><span class="token property-access">requestUri</span><span class="token punctuation">,</span> emitData<span class="token punctuation">.</span><span class="token property-access">onRequest</span><span class="token punctuation">,</span> emitData<span class="token punctuation">.</span><span class="token property-access">charset</span><span class="token punctuation">,</span> emitData<span class="token punctuation">.</span><span class="token property-access">crossorigin</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword">function</span> <span class="token function">onRequest</span><span class="token punctuation">(</span><span class="token parameter">error</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">//模块加载完毕的回调</span>\n    <span class="token keyword">var</span> m<span class="token punctuation">,</span> mods <span class="token operator">=</span> callbackList<span class="token punctuation">[</span>requestUri<span class="token punctuation">]</span>\n    <span class="token keyword">delete</span> callbackList<span class="token punctuation">[</span>requestUri<span class="token punctuation">]</span>\n    <span class="token comment">// 保存元数据到匿名模块，uri为请求js的uri</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>anonymousMeta<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">save</span><span class="token punctuation">(</span>uri<span class="token punctuation">,</span> anonymousMeta<span class="token punctuation">)</span>\n      anonymousMeta <span class="token operator">=</span> <span class="token keyword null nil">null</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">while</span> <span class="token punctuation">(</span><span class="token punctuation">(</span>m <span class="token operator">=</span> mods<span class="token punctuation">.</span><span class="token method function property-access">shift</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// When 404 occurs, the params error will be true</span>\n      <span class="token keyword control-flow">if</span><span class="token punctuation">(</span>error <span class="token operator">===</span> <span class="token boolean">true</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n        m<span class="token punctuation">.</span><span class="token method function property-access">error</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n      <span class="token punctuation">}</span>\n      <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n        m<span class="token punctuation">.</span><span class="token method function property-access">load</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n      <span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>经过fetch操作后，能够得到一个<code>requestCache</code>对象，该对象缓存了模块的加载方法，从上面代码就能看到，该方法最后调用的是<code>seajs.request</code>方法，并且传入了一个onRequest回调。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> requestUri <span class="token keyword">in</span> requestCache<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  requestCache<span class="token punctuation">[</span>requestUri<span class="token punctuation">]</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">//调用 seajs.request</span>\n<span class="token punctuation">}</span>\n\n<span class="token comment">//用来加载js脚本的方法</span>\nseajs<span class="token punctuation">.</span><span class="token property-access">request</span> <span class="token operator">=</span> request\n\n<span class="token keyword">function</span> <span class="token function">request</span><span class="token punctuation">(</span><span class="token parameter">url<span class="token punctuation">,</span> callback<span class="token punctuation">,</span> charset<span class="token punctuation">,</span> crossorigin</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> node <span class="token operator">=</span> doc<span class="token punctuation">.</span><span class="token method function property-access">createElement</span><span class="token punctuation">(</span><span class="token string">"script"</span><span class="token punctuation">)</span>\n  <span class="token function">addOnload</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> callback<span class="token punctuation">,</span> url<span class="token punctuation">)</span>\n  node<span class="token punctuation">.</span><span class="token property-access">async</span> <span class="token operator">=</span> <span class="token boolean">true</span> <span class="token comment">//异步加载</span>\n  node<span class="token punctuation">.</span><span class="token property-access">src</span> <span class="token operator">=</span> url\n  head<span class="token punctuation">.</span><span class="token method function property-access">appendChild</span><span class="token punctuation">(</span>node<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">function</span> <span class="token function">addOnload</span><span class="token punctuation">(</span><span class="token parameter">node<span class="token punctuation">,</span> callback<span class="token punctuation">,</span> url</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  node<span class="token punctuation">.</span><span class="token property-access">onload</span> <span class="token operator">=</span> onload\n  node<span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">onerror</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token function">emit</span><span class="token punctuation">(</span><span class="token string">"error"</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> uri<span class="token operator">:</span> url<span class="token punctuation">,</span> node<span class="token operator">:</span> node <span class="token punctuation">}</span><span class="token punctuation">)</span>\n    <span class="token function">onload</span><span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword">function</span> <span class="token function">onload</span><span class="token punctuation">(</span><span class="token parameter">error</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    node<span class="token punctuation">.</span><span class="token property-access">onload</span> <span class="token operator">=</span> node<span class="token punctuation">.</span><span class="token property-access">onerror</span> <span class="token operator">=</span> node<span class="token punctuation">.</span><span class="token property-access">onreadystatechange</span> <span class="token operator">=</span> <span class="token keyword null nil">null</span>\n    <span class="token comment">// 脚本加载完毕的回调</span>\n    <span class="token function">callback</span><span class="token punctuation">(</span>error<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E9%80%9A%E7%9F%A5%E5%85%A5%E5%8F%A3%E6%A8%A1%E5%9D%97">通知入口模块<a class="anchor" href="#%E9%80%9A%E7%9F%A5%E5%85%A5%E5%8F%A3%E6%A8%A1%E5%9D%97">§</a></h3>\n<p>上面就是request的逻辑，只不过删除了一些兼容代码，其实原理很简单，和requirejs一样，都是创建script标签，绑定onload事件，然后插入head中。在onload事件发生时，会调用之前fetch定义的onRequest方法，该方法最后会调用load方法。没错这个load方法又出现了，那么依赖模块调用和入口模块调用有什么区别呢，主要体现在下面代码中：</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>mod<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  mod<span class="token punctuation">.</span><span class="token method function property-access">onload</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token keyword control-flow">return</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>如果这个依赖模块没有另外的依赖模块，那么他的entry就会存在，然后调用onload模块，但是如果这个代码中有<code>define</code>方法，并且还有其他依赖项，就会走上面那么逻辑，遍历依赖项，转换uri，调用fetch巴拉巴拉。这个后面再看，先看看onload会做什么。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token class-name">Module</span><span class="token punctuation">.</span><span class="token property-access">prototype</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">onload</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> mod <span class="token operator">=</span> <span class="token keyword">this</span>\n  mod<span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">=</span> <span class="token constant">STATUS</span><span class="token punctuation">.</span><span class="token constant">LOADED</span> \n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span> len <span class="token operator">=</span> <span class="token punctuation">(</span>mod<span class="token punctuation">.</span><span class="token property-access">_entry</span> <span class="token operator">||</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> len<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">var</span> entry <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">[</span>i<span class="token punctuation">]</span>\n    <span class="token comment">// 每次加载完毕一个依赖模块，remain就-1</span>\n    <span class="token comment">// 直到remain为0，就表示所有依赖模块加载完毕</span>\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">--</span>entry<span class="token punctuation">.</span><span class="token property-access">remain</span> <span class="token operator">===</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      <span class="token comment">// 最后就会调用entry的callback方法</span>\n      <span class="token comment">// 这就是前面为什么要给每个依赖模块存入entry</span>\n      entry<span class="token punctuation">.</span><span class="token method function property-access">callback</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n  <span class="token keyword">delete</span> mod<span class="token punctuation">.</span><span class="token property-access">_entry</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E6%89%A7%E8%A1%8C%E5%AE%8C%E6%88%90%E5%85%A8%E9%83%A8%E6%93%8D%E4%BD%9C">依赖模块执行，完成全部操作<a class="anchor" href="#%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E6%89%A7%E8%A1%8C%E5%AE%8C%E6%88%90%E5%85%A8%E9%83%A8%E6%93%8D%E4%BD%9C">§</a></h3>\n<p>还记得最开始use方法中给入口模块设置callback方法吗，没错，兜兜转转我们又回到了起点。</p>\n<pre class="language-javascript"><code class="language-javascript">mod<span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">callback</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">//设置模块加载完毕的回调</span>\n  <span class="token keyword">var</span> exports <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n  <span class="token keyword">var</span> uris <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n\n  <span class="token keyword control-flow">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span> len <span class="token operator">=</span> uris<span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> len<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token comment">// 执行所有依赖模块的exec方法，存入exports数组</span>\n    exports<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> cachedMods<span class="token punctuation">[</span>uris<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token method function property-access">exec</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>callback<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    callback<span class="token punctuation">.</span><span class="token method function property-access">apply</span><span class="token punctuation">(</span>global<span class="token punctuation">,</span> exports<span class="token punctuation">)</span> <span class="token comment">//执行回调</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 移除一些属性</span>\n  <span class="token keyword">delete</span> mod<span class="token punctuation">.</span><span class="token property-access">callback</span>\n  <span class="token keyword">delete</span> mod<span class="token punctuation">.</span><span class="token property-access">history</span>\n  <span class="token keyword">delete</span> mod<span class="token punctuation">.</span><span class="token property-access">remain</span>\n  <span class="token keyword">delete</span> mod<span class="token punctuation">.</span><span class="token property-access">_entry</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>那么这个exec到底做了什么呢？</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token class-name">Module</span><span class="token punctuation">.</span><span class="token property-access">prototype</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">exec</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> mod <span class="token operator">=</span> <span class="token keyword">this</span>\n\n  mod<span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">=</span> <span class="token constant">STATUS</span><span class="token punctuation">.</span><span class="token constant">EXECUTING</span>\n\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>mod<span class="token punctuation">.</span><span class="token property-access">_entry</span> <span class="token operator">&amp;&amp;</span> <span class="token operator">!</span>mod<span class="token punctuation">.</span><span class="token property-access">_entry</span><span class="token punctuation">.</span><span class="token property-access">length</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">delete</span> mod<span class="token punctuation">.</span><span class="token property-access">_entry</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword">function</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token parameter">id</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token keyword">var</span> m <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">deps</span><span class="token punctuation">[</span>id<span class="token punctuation">]</span>\n    <span class="token keyword control-flow">return</span> m<span class="token punctuation">.</span><span class="token method function property-access">exec</span><span class="token punctuation">(</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword">var</span> factory <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">factory</span>\n\n  <span class="token comment">// 调用define定义的回调</span>\n  <span class="token comment">// 传入commonjs相关三个参数: require, module.exports, module</span>\n  <span class="token keyword">var</span> exports <span class="token operator">=</span> factory<span class="token punctuation">.</span><span class="token method function property-access">call</span><span class="token punctuation">(</span>mod<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">,</span> require<span class="token punctuation">,</span> mod<span class="token punctuation">.</span><span class="token property-access">exports</span><span class="token punctuation">,</span> mod<span class="token punctuation">)</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>exports <span class="token operator">===</span> <span class="token keyword nil">undefined</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    exports <span class="token operator">=</span> mod<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token comment">//如果函数没有返回值，就取mod.exports</span>\n  <span class="token punctuation">}</span>\n  mod<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token operator">=</span> exports\n  mod<span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">=</span> <span class="token constant">STATUS</span><span class="token punctuation">.</span><span class="token constant">EXECUTED</span>\n\n  <span class="token keyword control-flow">return</span> mod<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token comment">// 返回模块的exports</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这里的factory就是依赖模块define中定义的回调函数，例如我们加载的<code>main.js</code>中，定义了一个模块。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token function">define</span><span class="token punctuation">(</span><span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">require<span class="token punctuation">,</span> exports<span class="token punctuation">,</span> module</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  module<span class="token punctuation">.</span><span class="token property-access">exports</span> <span class="token operator">=</span> <span class="token string">\'main-module\'</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n</code></pre>\n<p>那么调用这个factory的时候，exports就为module.exports，也是是字符串<code>&quot;main-moudle&quot;</code>。最后callback传入的参数就是<code>&quot;main-moudle&quot;</code>。所以我们执行最开头写的那段代码，最后会在页面上弹出<code>main-moudle</code>。</p>\n<p><img src="https://file.shenfq.com/18-8-13/86590747.jpg" alt="执行结果"></p>\n<h2 id="define%E5%AE%9A%E4%B9%89%E6%A8%A1%E5%9D%97">define定义模块<a class="anchor" href="#define%E5%AE%9A%E4%B9%89%E6%A8%A1%E5%9D%97">§</a></h2>\n<p>你以为到这里就结束了吗？并没有。前面只说了加载依赖模块中define方法中没有其他依赖，那如果有其他依赖呢？废话不多说，先看看define方法做了什么：</p>\n<pre class="language-javascript"><code class="language-javascript">global<span class="token punctuation">.</span><span class="token property-access">define</span> <span class="token operator">=</span> <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token property-access">define</span>\n<span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">define</span> <span class="token operator">=</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">id<span class="token punctuation">,</span> deps<span class="token punctuation">,</span> factory</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> argsLen <span class="token operator">=</span> arguments<span class="token punctuation">.</span><span class="token property-access">length</span>\n\n  <span class="token comment">// 参数校准</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>argsLen <span class="token operator">===</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    factory <span class="token operator">=</span> id\n    id <span class="token operator">=</span> <span class="token keyword nil">undefined</span>\n  <span class="token punctuation">}</span>\n  <span class="token keyword control-flow">else</span> <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>argsLen <span class="token operator">===</span> <span class="token number">2</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    factory <span class="token operator">=</span> deps\n    <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token function">isArray</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n      deps <span class="token operator">=</span> id\n      id <span class="token operator">=</span> <span class="token keyword nil">undefined</span>\n    <span class="token punctuation">}</span>\n    <span class="token keyword control-flow">else</span> <span class="token punctuation">{</span>\n      deps <span class="token operator">=</span> <span class="token keyword nil">undefined</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 如果没有直接传入依赖数组</span>\n  <span class="token comment">// 则从factory中提取所有的依赖模块到dep数组中</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span><span class="token function">isArray</span><span class="token punctuation">(</span>deps<span class="token punctuation">)</span> <span class="token operator">&amp;&amp;</span> <span class="token function">isFunction</span><span class="token punctuation">(</span>factory<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    deps <span class="token operator">=</span> <span class="token keyword">typeof</span> parseDependencies <span class="token operator">===</span> <span class="token string">"undefined"</span> <span class="token operator">?</span> <span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">:</span> <span class="token function">parseDependencies</span><span class="token punctuation">(</span>factory<span class="token punctuation">.</span><span class="token method function property-access">toString</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n\n  <span class="token keyword">var</span> meta <span class="token operator">=</span> <span class="token punctuation">{</span> <span class="token comment">//模块加载与定义的元数据</span>\n    id<span class="token operator">:</span> id<span class="token punctuation">,</span>\n    uri<span class="token operator">:</span> <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">,</span>\n    deps<span class="token operator">:</span> deps<span class="token punctuation">,</span>\n    factory<span class="token operator">:</span> factory\n  <span class="token punctuation">}</span>\n\n  <span class="token comment">// 激活define事件, used in nocache plugin, seajs node version etc</span>\n  <span class="token function">emit</span><span class="token punctuation">(</span><span class="token string">"define"</span><span class="token punctuation">,</span> meta<span class="token punctuation">)</span>\n\n  meta<span class="token punctuation">.</span><span class="token property-access">uri</span> <span class="token operator">?</span> <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">save</span><span class="token punctuation">(</span>meta<span class="token punctuation">.</span><span class="token property-access">uri</span><span class="token punctuation">,</span> meta<span class="token punctuation">)</span> <span class="token operator">:</span>\n    <span class="token comment">// 在脚本加载完毕的onload事件进行save</span>\n    anonymousMeta <span class="token operator">=</span> meta\n  <span class="token punctuation">}</span>\n</code></pre>\n<p>首先进行了参数的修正，这个逻辑很简单，直接跳过。第二步判断了有没有依赖数组，如果没有，就通过parseDependencies方法从factory中获取。这个方法很有意思，是一个状态机，会一步步的去解析字符串，匹配到require，将其中的模块取出，最后放到一个数组里。这个方法在requirejs中是通过正则实现的，早期seajs也是通过正则匹配的，后来改成了这种状态机的方式，可能是考虑到性能的问题。seajs的仓库中专门有一个模块来讲这个东西的，请看<a href="https://github.com/seajs/crequire">链接</a>。</p>\n<p>获取到依赖模块之后又设置了一个meta对象，这个就表示这个模块的原数据，里面有记录模块的依赖项、id、factory等。如果这个模块define的时候没有设置id，就表示是个匿名模块，那怎么才能与之前发起请求的那个mod相匹配呢？</p>\n<p>这里就有了一个全局变量<code>anonymousMeta</code>，先将元数据放入这个对象。然后回过头看看模块加载时设置的onload函数里面有一段就是获取这个全局变量的。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token keyword">function</span> <span class="token function">onRequest</span><span class="token punctuation">(</span><span class="token parameter">error</span><span class="token punctuation">)</span> <span class="token punctuation">{</span> <span class="token comment">//模块加载完毕的回调</span>\n<span class="token spread operator">...</span>\n  <span class="token comment">// 保存元数据到匿名模块，uri为请求js的uri</span>\n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>anonymousMeta<span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">save</span><span class="token punctuation">(</span>uri<span class="token punctuation">,</span> anonymousMeta<span class="token punctuation">)</span>\n    anonymousMeta <span class="token operator">=</span> <span class="token keyword null nil">null</span>\n  <span class="token punctuation">}</span>\n<span class="token spread operator">...</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>不管是不是匿名模块，最后都是通过save方法，将元数据存入到mod中。</p>\n<pre class="language-javascript"><code class="language-javascript"> <span class="token comment">// 存储元数据到 cachedMods 中</span>\n<span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">save</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">uri<span class="token punctuation">,</span> meta</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> mod <span class="token operator">=</span> <span class="token maybe-class-name">Module</span><span class="token punctuation">.</span><span class="token method function property-access">get</span><span class="token punctuation">(</span>uri<span class="token punctuation">)</span>\n  \n  <span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>mod<span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">&lt;</span> <span class="token constant">STATUS</span><span class="token punctuation">.</span><span class="token constant">SAVED</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n    mod<span class="token punctuation">.</span><span class="token property-access">id</span> <span class="token operator">=</span> meta<span class="token punctuation">.</span><span class="token property-access">id</span> <span class="token operator">||</span> uri\n    mod<span class="token punctuation">.</span><span class="token property-access">dependencies</span> <span class="token operator">=</span> meta<span class="token punctuation">.</span><span class="token property-access">deps</span> <span class="token operator">||</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n    mod<span class="token punctuation">.</span><span class="token property-access">factory</span> <span class="token operator">=</span> meta<span class="token punctuation">.</span><span class="token property-access">factory</span>\n    mod<span class="token punctuation">.</span><span class="token property-access">status</span> <span class="token operator">=</span> <span class="token constant">STATUS</span><span class="token punctuation">.</span><span class="token constant">SAVED</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这里完成之后，就是和前面的逻辑一样了，先去校验当前模块有没有依赖项，如果有依赖项，就去加载依赖项和use的逻辑是一样的，等依赖项全部加载完毕后，通知入口模块的remain减1，知道remain为0，最后调用入口模块的回调方法。整个seajs的逻辑就已经全部走通，Yeah！</p>\n<hr>\n<h2 id="%E7%BB%93%E8%AF%AD">结语<a class="anchor" href="#%E7%BB%93%E8%AF%AD">§</a></h2>\n<p>有过看requirejs的经验，再来看seajs还是顺畅很多，对模块化的理解有了更加深刻的理解。阅读源码之前还是得对框架有个基本认识，并且有使用过，要不然很多地方都很懵懂。所以以后还是阅读一些工作中有经常使用的框架或类库的源码进行阅读，不能总像个无头苍蝇一样。</p>\n<p>最后用一张流程图，总结下seajs的加载过程。</p>\n<p><img src="https://file.shenfq.com/18-8-12/312991.jpg" alt="seajs加载流程图"></p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -49,7 +48,7 @@ export default {
         "张家喜"
     ],
     'date': "2018/08/15",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "近几年前端工程化越来越完善，打包工具也已经是前端标配了，像seajs这种老古董早已停止维护，而且使用的人估计也几个了。但这并不能阻止好奇的我，为了了解当年的前端前辈们是如何在浏览器进行代码模块化的，我鼓起勇气翻开了S...",
     'cover': "https://file.shenfq.com/18-8-13/86590747.jpg",
     'thumbnail': "//file.shenfq.com/18-8-16/90186127.jpg",
@@ -69,7 +68,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -89,7 +88,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -112,7 +111,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -134,7 +133,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -154,7 +153,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -174,7 +173,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -195,7 +194,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -215,7 +214,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -236,7 +235,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -256,7 +255,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -277,7 +276,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -297,7 +296,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -318,7 +317,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -341,7 +340,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -361,7 +360,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -381,7 +380,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -404,7 +403,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -425,7 +424,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -447,7 +446,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -469,7 +468,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -490,7 +489,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -511,7 +510,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -533,7 +532,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -555,7 +554,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -576,7 +575,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -597,7 +596,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -618,7 +617,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -639,7 +638,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -660,7 +659,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -681,7 +680,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -703,7 +702,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -726,7 +725,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -747,7 +746,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -769,7 +768,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -788,7 +787,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -810,7 +809,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -831,7 +830,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -853,7 +852,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -873,7 +872,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -894,7 +893,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -917,7 +916,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -941,7 +940,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -964,7 +963,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -983,7 +982,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1002,7 +1001,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1026,7 +1025,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1047,7 +1046,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1070,7 +1069,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1091,7 +1090,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1111,7 +1110,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1133,7 +1132,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1154,7 +1153,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1175,7 +1174,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1198,7 +1197,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1220,7 +1219,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1241,7 +1240,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1261,7 +1260,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1282,7 +1281,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1303,7 +1302,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1324,7 +1323,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1346,7 +1345,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1366,7 +1365,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1386,7 +1385,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1407,7 +1406,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1428,7 +1427,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1448,7 +1447,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1469,7 +1468,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1490,7 +1489,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1511,7 +1510,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

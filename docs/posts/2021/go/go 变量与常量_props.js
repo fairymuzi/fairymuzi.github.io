@@ -9,7 +9,6 @@ export default {
             __html: '<h1>Go 变量与常量</h1>\n<h2 id="%E5%8F%98%E9%87%8F">变量<a class="anchor" href="#%E5%8F%98%E9%87%8F">§</a></h2>\n<p>go 语言的变量声明和大多数语言类似，通过 <code>var</code> 关键字声明变量，只是 go 语言作为静态类型语言，声明变量时需要指定其类型。</p>\n<p>下面的代码表示声明一个『<code>name</code>』变量，类型为『<code>string</code>』，并给其赋值『<code>&quot;Shenfq&quot;</code>』。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">var</span> name <span class="token builtin">string</span> <span class="token operator">=</span> <span class="token string">"Shenfq"</span>\n</code></pre>\n<p>如果我们不进行赋值，这变量会获得一个默认值，下面列举一些 go 语言中的基础类型及其默认值。</p>\n<div class="table_wrapper"><table>\n<thead>\n<tr>\n<th>类型</th>\n<th>默认值</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>int（int32、int64……）</td>\n<td>0</td>\n</tr>\n<tr>\n<td>uint（uint32、uint64……）</td>\n<td>0</td>\n</tr>\n<tr>\n<td>float32、float64</td>\n<td>0.0</td>\n</tr>\n<tr>\n<td>bool</td>\n<td>false</td>\n</tr>\n<tr>\n<td>string</td>\n<td>&quot;&quot;</td>\n</tr>\n</tbody>\n</table></div>\n<h3 id="%E5%A4%9A%E5%8F%98%E9%87%8F%E5%A3%B0%E6%98%8E">多变量声明<a class="anchor" href="#%E5%A4%9A%E5%8F%98%E9%87%8F%E5%A3%B0%E6%98%8E">§</a></h3>\n<p>上面介绍 go 语言通过 <code>var</code> 关键字进行单个变量声明，我们还可以通过 <code>var</code> 关键字进行多个变量的声明：</p>\n<pre class="language-go"><code class="language-go"><span class="token comment">// 声明两个变量为同一类型</span>\n<span class="token keyword">var</span> firstName<span class="token punctuation">,</span> lastName <span class="token builtin">string</span>\n<span class="token comment">// 给两个变量同时赋值</span>\nfirstName<span class="token punctuation">,</span> lastName <span class="token operator">=</span> <span class="token string">"frank"</span><span class="token punctuation">,</span> <span class="token string">"shen"</span>\n</code></pre>\n<pre class="language-go"><code class="language-go"><span class="token comment">// 声明两个变量为不同类型</span>\n<span class="token keyword">var</span> <span class="token punctuation">(</span>\n  age <span class="token builtin">int</span>\n  name <span class="token builtin">string</span>\n<span class="token punctuation">)</span>\n<span class="token comment">// 给两个变量同时赋值</span>\nage<span class="token punctuation">,</span> name <span class="token operator">=</span> <span class="token number">25</span><span class="token punctuation">,</span> <span class="token string">"Shenfq"</span>\n</code></pre>\n<h3 id="%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC">类型推导<a class="anchor" href="#%E7%B1%BB%E5%9E%8B%E6%8E%A8%E5%AF%BC">§</a></h3>\n<p>如果我们在变量声明阶段，对变量进行了赋值操作，这时候我们是可以直接省略变量类型的，因为 go 在编译过程中会依据所赋予的初始值推导出其类型。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">var</span> age <span class="token operator">=</span> <span class="token number">25</span>\n\nfmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"age 类型为：%T"</span><span class="token punctuation">,</span> age<span class="token punctuation">)</span> <span class="token comment">// age 类型为：int</span>\n</code></pre>\n<pre class="language-go"><code class="language-go"><span class="token keyword">var</span> <span class="token punctuation">(</span>\n  age <span class="token operator">=</span> <span class="token number">18</span>\n  name <span class="token operator">=</span> <span class="token string">"Shenfq"</span>\n<span class="token punctuation">)</span>\nfmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"age 类型为：%T"</span><span class="token punctuation">,</span> age<span class="token punctuation">)</span> <span class="token comment">// age 类型为：int</span>\nfmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"name 类型为：%T"</span><span class="token punctuation">,</span> name<span class="token punctuation">)</span> <span class="token comment">// name 类型为：string</span>\n</code></pre>\n<h3 id="%E7%AE%80%E7%9F%AD%E6%A0%BC%E5%BC%8F">简短格式<a class="anchor" href="#%E7%AE%80%E7%9F%AD%E6%A0%BC%E5%BC%8F">§</a></h3>\n<p>前面介绍了变量声明的时候，如果给定了初始值，go 在编译阶段可以进行类型推导。这种情况，go 提供了一种更简单的声明方式，通过 <code>:=</code> 的方式进行变量声明，可以省略 <code>var</code> 关键字。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  age <span class="token operator">:=</span> <span class="token number">25</span>\n  name <span class="token operator">:=</span> <span class="token string">"Shenfq"</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<pre class="language-go"><code class="language-go"><span class="token comment">// 也可以进行多个变量同时赋值</span>\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  age<span class="token punctuation">,</span> name <span class="token operator">:=</span> <span class="token number">25</span><span class="token punctuation">,</span> <span class="token string">"Shenfq"</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h4 id="%E2%9A%A0%EF%B8%8F%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9%E4%B8%80">⚠️注意事项一<a class="anchor" href="#%E2%9A%A0%EF%B8%8F%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9%E4%B8%80">§</a></h4>\n<p>这种声明方式只能用于函数体内，不能用于全局变量的声明。</p>\n<pre class="language-go"><code class="language-go"><span class="token comment">// ⚠️ 不能在全局使用这种方式声明变量</span>\nage<span class="token punctuation">,</span> name <span class="token operator">:=</span> <span class="token number">25</span><span class="token punctuation">,</span> <span class="token string">"Shenfq"</span>\n\n<span class="token comment">// 只能在函数体内使用该方式</span>\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  age<span class="token punctuation">,</span> name <span class="token operator">:=</span> <span class="token number">25</span><span class="token punctuation">,</span> <span class="token string">"Shenfq"</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"age 类型为：%T"</span><span class="token punctuation">,</span> age<span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"name 类型为：%T"</span><span class="token punctuation">,</span> name<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210406135246.png" alt="warning"></p>\n<h4 id="%E2%9A%A0%EF%B8%8F%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9%E4%BA%8C">⚠️注意事项二<a class="anchor" href="#%E2%9A%A0%EF%B8%8F%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9%E4%BA%8C">§</a></h4>\n<p>已经声明过的变量，不能使用 <code>:=</code> 的方式进行赋值。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> age <span class="token builtin">int</span>\n  age <span class="token operator">:=</span> <span class="token number">25</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210406135740.png" alt=""></p>\n<p>已经声明过的变量，只能通过 <code>=</code> 的方式进行赋值。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> age <span class="token builtin">int</span>\n  age <span class="token operator">=</span> <span class="token number">25</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E5%85%A8%E5%B1%80%E5%8F%98%E9%87%8F%E4%B8%8E%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F">全局变量与局部变量<a class="anchor" href="#%E5%85%A8%E5%B1%80%E5%8F%98%E9%87%8F%E4%B8%8E%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F">§</a></h3>\n<p>简单来说，声明在函数体外的变量为全局变量，声明在函数体内的变量为局部变量。</p>\n<p>局部变量如果有声明，没有进行使用，则不会通过编译。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> age <span class="token builtin">int</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210406141652.png" alt=""></p>\n<p>但是，全局变量是可以声明而不使用的。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">var</span> age <span class="token builtin">int</span>\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  name <span class="token operator">:=</span> <span class="token string">"Shenfq"</span>\n  <span class="token comment">//fmt.Printf("age 类型为：%T", age)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"name 类型为：%T"</span><span class="token punctuation">,</span> name<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>上面的代码中，我们声明了 <code>age</code> 全局变量，但是并未使用，可以正常编译。</p>\n<h3 id="%E7%A9%BA%E7%99%BD%E6%A0%87%E8%AF%86%E7%AC%A6">空白标识符<a class="anchor" href="#%E7%A9%BA%E7%99%BD%E6%A0%87%E8%AF%86%E7%AC%A6">§</a></h3>\n<p>前面介绍过，go 在变量赋值的时候，可以一次性对多个变量赋值。同时，go 的函数在 return 的时候，也能一次返回多个结果。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">double</span><span class="token punctuation">(</span>num <span class="token builtin">int</span><span class="token punctuation">)</span> <span class="token punctuation">(</span><span class="token builtin">string</span><span class="token punctuation">,</span> <span class="token builtin">int</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> err <span class="token builtin">string</span>\n  <span class="token keyword">if</span> num <span class="token operator">&lt;</span> <span class="token number">0</span> <span class="token punctuation">{</span>\n    err <span class="token operator">=</span> <span class="token string">"num 不能为负数"</span>\n    <span class="token keyword">return</span> err<span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1</span>\n  <span class="token punctuation">}</span>\n  result <span class="token operator">:=</span> num <span class="token operator">*</span> <span class="token number">2</span>\n  <span class="token keyword">return</span> err<span class="token punctuation">,</span> result\n<span class="token punctuation">}</span>\n</code></pre>\n<p>上面我们实现了一个 <code>double</code> 函数，该函数接受一个 <code>int</code> 类型的变量（<code>num</code>），返回两个值，一个为异常提示，一个为 <code>num * 2</code> 的结果。如果 <code>num &lt; 0</code> ， 则提示 <code>num</code> 不能负数。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  err<span class="token punctuation">,</span> res <span class="token operator">:=</span> <span class="token function">double</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span>\n  <span class="token keyword">if</span> err <span class="token operator">!=</span> <span class="token string">""</span> <span class="token punctuation">{</span>\n    fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span>err<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>\n    fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"结果为：%v"</span><span class="token punctuation">,</span> res<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>如果，我们并不关心 <code>err</code> ，只想执行 <code>double</code> 之后，输出其结果。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  err<span class="token punctuation">,</span> res <span class="token operator">:=</span> <span class="token function">double</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"结果为：%v"</span><span class="token punctuation">,</span> res<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210406145932.png" alt=""></p>\n<p>运行后，我们会收到一个编译错误，<code>err</code> 变量并未使用。这时候，就需要用到空白标识符（<code>_</code>）。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token boolean">_</span><span class="token punctuation">,</span> res <span class="token operator">:=</span> <span class="token function">double</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"结果为：%v"</span><span class="token punctuation">,</span> res<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>我们可以通过 <code>_</code> 来接受 <code>err</code> 值，这个地方的值就会被抛弃掉，就能顺利通过编译。</p>\n<h2 id="%E5%B8%B8%E9%87%8F">常量<a class="anchor" href="#%E5%B8%B8%E9%87%8F">§</a></h2>\n<p>常量就是不会发生变化的变量，一旦声明就不会改变。go 语言中，常量的声明只需要将变量声明时的 <code>var</code> 关键字替换为 <code>const</code> 关键字。</p>\n<pre class="language-go"><code class="language-go"><span class="token comment">// 隐式类型定义</span>\n<span class="token keyword">const</span> PI <span class="token operator">=</span> <span class="token number">3.14</span>\n<span class="token comment">// 显式类型定义</span>\n<span class="token keyword">const</span> PI2 float  <span class="token operator">=</span> <span class="token number">3.14</span>\n</code></pre>\n<h3 id="%E5%A4%9A%E5%B8%B8%E9%87%8F%E5%A3%B0%E6%98%8E">多常量声明<a class="anchor" href="#%E5%A4%9A%E5%B8%B8%E9%87%8F%E5%A3%B0%E6%98%8E">§</a></h3>\n<p>与变量类似，常量也支持一次性声明多个。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> <span class="token punctuation">(</span>\n    PI <span class="token operator">=</span> <span class="token number">3.14</span>\n    PI2 <span class="token operator">=</span> <span class="token number">3.14</span>\n  <span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"结果为：%v\n"</span><span class="token punctuation">,</span> PI<span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"结果为：%v\n"</span><span class="token punctuation">,</span> PI2<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p><img src="https://file.shenfq.com/pic/20210406171303.png" alt=""></p>\n<p>如果一次声明多个常量时，某个常量如果为进行赋值，默认会与上一个常量的值进行同步。下面代码的运行结果，与上面的代码一致。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> <span class="token punctuation">(</span>\n    PI <span class="token operator">=</span> <span class="token number">3.14</span>\n    PI2\n  <span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"结果为：%v\n"</span><span class="token punctuation">,</span> PI<span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Printf</span><span class="token punctuation">(</span><span class="token string">"结果为：%v\n"</span><span class="token punctuation">,</span> PI2<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h3 id="%E7%89%B9%E6%AE%8A%E5%B8%B8%E9%87%8F">特殊常量<a class="anchor" href="#%E7%89%B9%E6%AE%8A%E5%B8%B8%E9%87%8F">§</a></h3>\n<p>有个叫做 <code>iota</code> 的特殊常量，在常量的赋值过程中，会进行累加。</p>\n<pre class="language-go"><code class="language-go">\n<span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> <span class="token punctuation">(</span>\n    A <span class="token operator">=</span> <span class="token boolean">iota</span>\n    B\n    C\n  <span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>A<span class="token punctuation">,</span> B<span class="token punctuation">,</span> C<span class="token punctuation">)</span> <span class="token comment">// 0 1 2</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>在 <code>iota</code> 累加的过程中，可以对其进行打断。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> <span class="token punctuation">(</span>\n    A <span class="token operator">=</span> <span class="token boolean">iota</span>\n    B\n    C <span class="token operator">=</span> <span class="token string">"Shenfq"</span>\n    D\n    E\n  <span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>A<span class="token punctuation">,</span> B<span class="token punctuation">,</span> C<span class="token punctuation">,</span> D<span class="token punctuation">,</span> E<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>这时候输出的结果为：</p>\n<p><img src="https://file.shenfq.com/pic/20210406172317.png" alt=""></p>\n<p>这是由于我们将常量 <code>C</code> 修改为了字符串 <code>&quot;Shenfq&quot;</code>，常量 <code>D</code>、<code>E</code> 会默认与上一条常量保持同步，所以会得到上述结果。但是， <code>iota</code>  是支持重新恢复累加，只需要在指定位置重新赋值一次 <code>iota</code> 即可。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">func</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token keyword">const</span> <span class="token punctuation">(</span>\n    A <span class="token operator">=</span> <span class="token boolean">iota</span>\n    B\n    C <span class="token operator">=</span> <span class="token string">"Shenfq"</span>\n    D <span class="token operator">=</span> <span class="token boolean">iota</span> <span class="token comment">// 恢复累加状态</span>\n    E\n  <span class="token punctuation">)</span>\n  fmt<span class="token punctuation">.</span><span class="token function">Println</span><span class="token punctuation">(</span>A<span class="token punctuation">,</span> B<span class="token punctuation">,</span> C<span class="token punctuation">,</span> D<span class="token punctuation">,</span> E<span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n</code></pre>\n<p>由于 <code>C</code> 占用了原本 <code>2</code> 的位置，所以 <code>D</code> 恢复后，也是从 <code>3</code> 开始的。</p>\n<p><img src="https://file.shenfq.com/pic/20210406172627.png" alt=""></p>\n<p><code>iota</code> 这种累加的特性，特别像我们在其他语言中使用的枚举，所以在 go 语言中，我们可以直接将 <code>iota</code> 当做枚举来使用。</p>\n<pre class="language-go"><code class="language-go"><span class="token keyword">type</span> ButtonType <span class="token builtin">int</span>\n<span class="token keyword">const</span> <span class="token punctuation">(</span>\n  Default ButtonType <span class="token operator">=</span> <span class="token boolean">iota</span>\n  Primary\n  Warning\n  Error\n<span class="token punctuation">)</span>\n</code></pre>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -47,7 +46,7 @@ export default {
         "张家喜"
     ],
     'date': "2021/04/06",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "变量 go 语言的变量声明和大多数语言类似，通过 var 关键字声明变量，只是 go 语言作为静态类型语言，声明变量时需要指定其类型。 下面的代码表示声明一个『name』变量，类型为『string』，并给其赋值『\"Shenfq\"』。 var name ...",
     'cover': "https://file.shenfq.com/pic/20210406135246.png",
     'categories': [
@@ -66,7 +65,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -86,7 +85,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -109,7 +108,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -131,7 +130,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -151,7 +150,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -171,7 +170,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -192,7 +191,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -212,7 +211,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -233,7 +232,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -253,7 +252,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -274,7 +273,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -294,7 +293,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -315,7 +314,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -338,7 +337,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -358,7 +357,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -378,7 +377,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -401,7 +400,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -422,7 +421,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -444,7 +443,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -466,7 +465,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -487,7 +486,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -508,7 +507,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -530,7 +529,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -552,7 +551,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -573,7 +572,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -594,7 +593,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -615,7 +614,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -636,7 +635,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -657,7 +656,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -678,7 +677,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -700,7 +699,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -723,7 +722,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -744,7 +743,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -766,7 +765,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -785,7 +784,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -807,7 +806,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -828,7 +827,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -850,7 +849,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -870,7 +869,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -891,7 +890,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -914,7 +913,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -938,7 +937,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -961,7 +960,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -980,7 +979,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -999,7 +998,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1023,7 +1022,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1044,7 +1043,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1067,7 +1066,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1088,7 +1087,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1108,7 +1107,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1130,7 +1129,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1151,7 +1150,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1172,7 +1171,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1195,7 +1194,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1217,7 +1216,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1238,7 +1237,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1258,7 +1257,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1279,7 +1278,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1300,7 +1299,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1321,7 +1320,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1343,7 +1342,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1363,7 +1362,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1383,7 +1382,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1404,7 +1403,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1425,7 +1424,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1445,7 +1444,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1466,7 +1465,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1487,7 +1486,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1508,7 +1507,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

@@ -9,7 +9,6 @@ export default {
             __html: '<h1>前端业务组件化实践</h1>\n<p>最近一直在做管理端相关的需求，管理端不比h5每天都有高流量，需要不断地做性能上的优化，以及适配不同设备兼容性。但是管理端也面临着自己的挑战，因为项目越来越大，可配置化的东西就越来越多，管理端的页面也就越多，同时面向不同的用户群也催生出了不同管理端，这就导致相同的业务组件在不同项目、不同页面中不停地被copy，一旦组件出现改动，就需要打开多个项目进行修改，出现遗漏还得背锅。</p>\n<p><img src="https://file.shenfq.com/18-12-19/84472576.jpg" alt=""></p>\n<!-- more -->\n<p>毋庸置疑，管理端是有很多优秀的组件库的，比如ElementUI、iView、Antd，但是这些组件库仅仅提供了很基础的组件（比如，表单、表格、弹窗）。那么我们是不是可以把这些多个地方使用的业务组件也进行封装，打包成NPM包放到公司的私有源上，然后通过tnpm进行安装，当组件出现变动的时候，只需要进行<code>tnpm update component</code>即可。这样做的好处就是提高代码的复用性，并且组件有一个专门的仓库进行维护，所有内部管理端项目都能引入这个组件库。</p>\n<p>可能有人会问，管理端中真的会有很多公共的业务组件吗，不同的管理端端之间肯定会有不同的特殊需求如何保证组件的一致性？首先我目前所做的属于电商业务，做电商相关的东西都会有很多业务组件，比如商品选择器、excel批量导入、文件上传等等。再者管理端组件的通用性远高于面向用户侧的组件，因为不管是中秋节、端午节、国庆节，选择商品的弹窗大致逻辑与样式基本不变，而对于面向用户侧的前端组件，不同节日，不同玩法，组件样式肯定会有变动，但是基础的业务逻辑还是能够进行抽象复用，这里不继续展开讨论。</p>\n<h2 id="%E4%BB%80%E4%B9%88%E6%98%AF%E7%BB%84%E4%BB%B6">什么是组件<a class="anchor" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E7%BB%84%E4%BB%B6">§</a></h2>\n<p>这个问题可能比较抽象，每个人对组件可能都有不同的理解，针对组件的颗粒度、通用性回答也会千奇百怪。其实组件一直都存在，没有前端的那个年代，大家管它叫控件，想要在pc端做个软件直接去拖一块一块的控件放到某个位置就好了。在C/S架构的软件向B/S迁移的过程中，控件的概念也慢慢延伸到了Web前端。对于现代前端框架，封装好的组件对于外部来说只是一个自定义的标签，标签可以进行属性和事件的自定义，所以狭义得说，前端组件只能说是一个个的自定义标签，有其固有的样式和自定义的属性与事件。</p>\n<p>关于组件的设计，有一个基本原则：一个组件只做一件事，且把这件事做好。</p>\n<p>通俗来讲，就是基础组件尽量做到细颗粒度的拆分，对一件事的定义可大可小，往小了说，一个输入框、一个按钮，这就是一个基础组件，他们就只做一件事那就是输入和点击。而我们的业务组件就是要把这些小组件组成一个大组件，比如由弹窗+输入框+按钮+穿梭框组成的一个商品选择器，本质上也只做一件事，那就是选择商品。</p>\n<p><img src="https://file.shenfq.com/18-12-19/43713364.jpg" alt=""></p>\n<pre class="language-html"><code class="language-html">封装前：\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-dialog</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-form</span><span class="token punctuation">></span></span>\n      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-input</span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-input</span><span class="token punctuation">></span></span>\n      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-input</span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-input</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-button</span><span class="token punctuation">></span></span>查询<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-button</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-button</span><span class="token punctuation">></span></span>批量导入<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-button</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-button</span><span class="token punctuation">></span></span>下载模版<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-button</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-form</span><span class="token punctuation">></span></span>\n\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Transfer</span><span class="token punctuation">></span></span>\n      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-button</span><span class="token punctuation">></span></span>取消<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-button</span><span class="token punctuation">></span></span>\n      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>el-button</span><span class="token punctuation">></span></span>下一步<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-button</span><span class="token punctuation">></span></span>\n    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>Transfer</span><span class="token punctuation">></span></span>\n  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>el-dialog</span><span class="token punctuation">></span></span>\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">></span></span>\n\n封装后：\n<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>select-goods</span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>select-goods</span><span class="token punctuation">></span></span>\n</code></pre>\n<p>所以一个业务组件的形成其实就是对一些基础组件的组装，当我们有一系列逻辑代码和标签需要在多个地方使用的时候，就要考虑把它封装成一个新的组件，提升代码的复用性。</p>\n<h2 id="%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B">技术选型<a class="anchor" href="#%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B">§</a></h2>\n<p><img src="https://file.shenfq.com/18-12-19/41159506.jpg" alt=""></p>\n<p>需要构建业务组件库，底层肯定是要基于前端框架和基础组件库的。</p>\n<p>目前的三大前端框架都支持组件化的功能，只是内部的原理有些差异，比如React、Vue的组件化都是基于虚拟DOM。对于底层选择什么框架，其实问题不大，跟随团队方向就好，如果团队的项目都使用Vue，你偏偏要使用Angular，但是可能其他同事对这个框架都不熟悉，需要一定的学习成本，这肯定不是一个好选择。由于我们团队项目基本使用Vue，所以我们底层框架选用Vue，基础组件库使用ElementUI。接下来的业务组件库的搭建都是在此基础上进行的。</p>\n<h2 id="%E9%A1%B9%E7%9B%AE%E6%90%AD%E5%BB%BA">项目搭建<a class="anchor" href="#%E9%A1%B9%E7%9B%AE%E6%90%AD%E5%BB%BA">§</a></h2>\n<p>先看看项目目录，目录结构有参考ElementUI，具体可以看我之前写的文章：<a href="https://blog.shenfq.com/2018/09/17/ElementUI%E7%9A%84%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B/">《ElementUI构建流程》</a>。</p>\n<pre class="language-autoit"><code class="language-autoit">├─build  构建相关的脚本\n├─docs  组件文档\n├─examples  组件示例\n├─packages  组件目录，每个组件一个单独文件夹\n│  ├─componentA\n│  │  └─src\n│  ├─componentB\n│  │  └─src\n│  └─componentC\n│  │  └─src\n│  └─<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>\n├─src  <span class="token operator">/</span><span class="token operator">/</span> 组件的入口文件以及一些工具方法\n│  └─main<span class="token punctuation">.</span>js\n└─components<span class="token punctuation">.</span>json <span class="token operator">/</span><span class="token operator">/</span>组件列表\n</code></pre>\n<p>既然最后要发布为NPM包，<code>package.json</code>肯定必不可少的，这其中有几个配置需要注意。</p>\n<h4 id="peerdependencies">peerDependencies<a class="anchor" href="#peerdependencies">§</a></h4>\n<pre class="language-javascript"><code class="language-javascript"><span class="token comment">// package.json</span>\n<span class="token string">"peerDependencies"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n    <span class="token string">"element-ui"</span><span class="token operator">:</span> <span class="token string">"^2.4.6"</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>在我们实际的应用中，使用得比较多的就是dependencies和devDependencies。但是peerDependencies，很少需要使用，因为这个依赖一般只要做插件开发时才会经常使用。有这种依赖意味着安装包的用户需要同时安装这些依赖，从npm@3.0开始不会自动帮你安装，需要你的应用中的dependencies或devDependencies中也有同样的依赖。这里我们的组件库需要依赖<code>element-ui</code>，同时<code>element-ui</code>的<a href="https://github.com/ElemeFE/element/blob/dev/package.json#L59">package.json</a>也同步依赖了vue。</p>\n<h4 id="main">main<a class="anchor" href="#main">§</a></h4>\n<p>这个字段表示库被引入时，默认引入的js文件是哪个。这里我们设置为<code>src/main.js</code>，该文件通过脚本自动生成。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token keyword">const</span> components <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'my-components\'</span><span class="token punctuation">)</span>\n\n<span class="token comment">//实际引入的js为</span>\n\n<span class="token keyword">const</span> components <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'node_modules/my-components/src/main.js\'</span><span class="token punctuation">)</span>\n</code></pre>\n<h4 id="files">files<a class="anchor" href="#files">§</a></h4>\n<p>这个字段表示发布到NPM上时，只发布哪些指定文件夹/文件。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token string">"files"</span><span class="token operator">:</span> <span class="token punctuation">[</span>\n    <span class="token string">"src"</span><span class="token punctuation">,</span>\n    <span class="token string">"packages"</span><span class="token punctuation">,</span>\n    <span class="token string">"README.md"</span><span class="token punctuation">,</span>\n    <span class="token string">"components.json"</span>\n<span class="token punctuation">]</span>\n</code></pre>\n<p>当然你也可以在项目根目录配置<code>.npmignore</code>文件，写法与<code>.gitignore</code>一样，作用就是publish到NPM上时要进行忽略的文件。但是下面文件是会默认在files字段中的，即使你加入到<code>.npmignore</code>文件也无法被忽略。</p>\n<ul>\n<li>package.json</li>\n<li>README</li>\n<li>CHANGES / CHANGELOG / HISTORY</li>\n<li>LICENSE / LICENCE</li>\n<li>NOTICE</li>\n<li>&quot;main&quot; 字段的文件</li>\n</ul>\n<p>还有一些文件是默认被npm忽略的。</p>\n<ul>\n<li>.git、.svn</li>\n<li>.*.swp</li>\n<li>.DS_Store</li>\n<li>.npmrc</li>\n<li>node_modules</li>\n<li>npm-debug.log</li>\n<li>package-lock.json</li>\n</ul>\n<p>在定义好目录结构和pkg.json后，我们就需要构建组件库的入口文件。因为组件库是在Vue的基础上构建，那么肯定要符合Vue插件的写法，入口js需要对外暴露一个install方法，用于将所有业务组件注册为全局组件，这样只需要引入之后进行use。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token comment">// main.js</span>\n<span class="token keyword module">import</span> <span class="token imports">componentA</span> <span class="token keyword module">from</span> <span class="token string">\'../packages/componentA/index.js\'</span>\n<span class="token keyword module">import</span> <span class="token imports">componentB</span> <span class="token keyword module">from</span> <span class="token string">\'../packages/componentB/index.js\'</span>\n<span class="token keyword module">import</span> <span class="token imports">componentC</span> <span class="token keyword module">from</span> <span class="token string">\'../packages/componentC/index.js\'</span>\n\n<span class="token keyword">const</span> components <span class="token operator">=</span> <span class="token punctuation">[</span>\n  componentA<span class="token punctuation">,</span>\n  componentB<span class="token punctuation">,</span>\n  componentC\n<span class="token punctuation">]</span>\n\n<span class="token keyword">const</span> <span class="token function-variable function">install</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter"><span class="token maybe-class-name">Vue</span><span class="token punctuation">,</span> opts <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  components<span class="token punctuation">.</span><span class="token method function property-access">map</span><span class="token punctuation">(</span><span class="token parameter">component</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n    <span class="token maybe-class-name">Vue</span><span class="token punctuation">.</span><span class="token method function property-access">component</span><span class="token punctuation">(</span>component<span class="token punctuation">.</span><span class="token property-access">name</span><span class="token punctuation">,</span> component<span class="token punctuation">)</span>\n  <span class="token punctuation">}</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword module">export</span> <span class="token keyword module">default</span> <span class="token punctuation">{</span>\n  install<span class="token punctuation">,</span> <span class="token comment">// 对外暴露install方法</span>\n  componentA<span class="token punctuation">,</span>\n  componentB<span class="token punctuation">,</span>\n  componentC\n<span class="token punctuation">}</span>\n\n<span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">-</span>\n\n<span class="token comment">// 使用方式</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token maybe-class-name">Vue</span></span> <span class="token keyword module">from</span> <span class="token string">\'vue\'</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token maybe-class-name">ElementUI</span></span> <span class="token keyword module">from</span> <span class="token string">\'element-ui\'</span>\n<span class="token keyword module">import</span> <span class="token imports"><span class="token maybe-class-name">Components</span></span> <span class="token keyword module">from</span> <span class="token string">\'my-components\'</span>\n<span class="token maybe-class-name">Vue</span><span class="token punctuation">.</span><span class="token method function property-access">use</span><span class="token punctuation">(</span><span class="token maybe-class-name">ElementUI</span><span class="token punctuation">)</span>\n<span class="token maybe-class-name">Vue</span><span class="token punctuation">.</span><span class="token method function property-access">use</span><span class="token punctuation">(</span><span class="token maybe-class-name">Components</span><span class="token punctuation">)</span>\n</code></pre>\n<p>这样做使用的时候很方便，但是每次新增组件就需要手动修改这个main.js，有没有办法让这个文件自动生成呢？当然是有的，我们可以手动维护一个components.json文件，用来存储所有组件名和组件路径。</p>\n<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>\n  <span class="token property">"componentA"</span><span class="token operator">:</span> <span class="token string">"../packages/componentA/index.js"</span><span class="token punctuation">,</span>\n  <span class="token property">"componentB"</span><span class="token operator">:</span> <span class="token string">"../packages/componentB/index.js"</span><span class="token punctuation">,</span>\n  <span class="token property">"componentC"</span><span class="token operator">:</span> <span class="token string">"../packages/componentC/index.js"</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>然后根据这个json文件和模版文件进行入口文件的生成，提高效率。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token comment">// build/entry.js</span>\n<span class="token keyword">const</span> fs <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'fs\'</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> path <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'path\'</span><span class="token punctuation">)</span>\n\n<span class="token keyword">const</span> endOfLine <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'os\'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token constant">EOL</span><span class="token punctuation">;</span>\n<span class="token keyword">const</span> uppercamelcase <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'uppercamelcase\'</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> <span class="token maybe-class-name">Components</span> <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'../components.json\'</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> <span class="token maybe-class-name">ComponentNames</span> <span class="token operator">=</span> <span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token method function property-access">keys</span><span class="token punctuation">(</span><span class="token maybe-class-name">Components</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> <span class="token constant">OUTPUT_PATH</span> <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>__dirname<span class="token punctuation">,</span> <span class="token string">\'../src/main.js\'</span><span class="token punctuation">)</span>\n\n<span class="token keyword">let</span> includeComponentTemplate <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n<span class="token keyword">let</span> installTemplate <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>\n\n<span class="token maybe-class-name">ComponentNames</span><span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">name</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword">var</span> componentName <span class="token operator">=</span> <span class="token function">uppercamelcase</span><span class="token punctuation">(</span>name<span class="token punctuation">)</span><span class="token punctuation">;</span>\n\n  includeComponentTemplate<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>\n  <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">import </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>componentName<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> from \'</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token maybe-class-name">Components</span><span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\'</span><span class="token template-punctuation string">`</span></span>\n  <span class="token punctuation">)</span>\n\n  installTemplate<span class="token punctuation">.</span><span class="token method function property-access">push</span><span class="token punctuation">(</span>\n  <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">  </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>componentName<span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span>\n  <span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n<span class="token keyword">const</span> <span class="token constant">MAIN_TEMPLATE</span> <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>includeComponentTemplate<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>endOfLine<span class="token punctuation">)</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\n\nconst components = [\n</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>installList<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\n]\n\nconst install = function(Vue, opts = {}) {\n  components.map(component => {\n    Vue.component(component.name, component)\n  })\n}\n\nexport default {\n  install,\n</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>installTemplate<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span><span class="token string">\',\'</span> <span class="token operator">+</span> endOfLine<span class="token punctuation">)</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\n}\n</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">;</span>\n\nfs<span class="token punctuation">.</span><span class="token method function property-access">writeFileSync</span><span class="token punctuation">(</span><span class="token constant">OUTPUT_PATH</span><span class="token punctuation">,</span> <span class="token constant">MAIN_TEMPLATE</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token string">\'[build entry] DONE:\'</span><span class="token punctuation">,</span> <span class="token constant">OUTPUT_PATH</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n</code></pre>\n<p>新增组件之后，只需要执行<code>node build/entry.js</code>即可，同时也可以将这个命令添加到pkg的scripts中。</p>\n<pre class="language-json"><code class="language-json"><span class="token property">"scripts"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n  <span class="token property">"build:entry"</span><span class="token operator">:</span> <span class="token string">"node build/entry.js"</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h2 id="%E7%BB%84%E4%BB%B6%E7%9A%84%E6%96%B0%E5%A2%9E%E4%B8%8E%E6%9E%84%E5%BB%BA">组件的新增与构建<a class="anchor" href="#%E7%BB%84%E4%BB%B6%E7%9A%84%E6%96%B0%E5%A2%9E%E4%B8%8E%E6%9E%84%E5%BB%BA">§</a></h2>\n<p>用components.json和js脚本的方式进行入口文件的生成，可以一旦程度上提高代码维护性，但是一旦有组件新增还是得修改components.json文件，还是比较繁琐。这里我们也可以通过js脚本的方式来新增组件。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token comment">// build/new.js</span>\n\n<span class="token string">\'use strict\'</span>\n\n<span class="token comment">// 读取命令行参数</span>\n<span class="token keyword control-flow">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>process<span class="token punctuation">.</span><span class="token property-access">argv</span><span class="token punctuation">[</span><span class="token number">2</span><span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">error</span><span class="token punctuation">(</span><span class="token string">\'[组件名]必填\'</span><span class="token punctuation">)</span>\n  process<span class="token punctuation">.</span><span class="token method function property-access">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>\n<span class="token punctuation">}</span>\n\n<span class="token keyword">const</span> path <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'path\'</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> fileSave <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'file-save\'</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> uppercamelcase <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'uppercamelcase\'</span><span class="token punctuation">)</span>\n<span class="token keyword">const</span> componentname <span class="token operator">=</span> process<span class="token punctuation">.</span><span class="token property-access">argv</span><span class="token punctuation">[</span><span class="token number">2</span><span class="token punctuation">]</span>\n<span class="token keyword">const</span> <span class="token maybe-class-name">ComponentName</span> <span class="token operator">=</span> <span class="token function">uppercamelcase</span><span class="token punctuation">(</span>componentname<span class="token punctuation">)</span> <span class="token comment">// 转为驼峰表示</span>\n<span class="token keyword">const</span> <span class="token maybe-class-name">PackagePath</span> <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">resolve</span><span class="token punctuation">(</span>__dirname<span class="token punctuation">,</span> <span class="token string">\'../packages\'</span><span class="token punctuation">,</span> componentname<span class="token punctuation">)</span>\n<span class="token keyword">const</span> <span class="token maybe-class-name">Files</span> <span class="token operator">=</span> <span class="token punctuation">[</span>\n  <span class="token punctuation">{</span>\n    filename<span class="token operator">:</span> <span class="token string">\'index.js\'</span><span class="token punctuation">,</span>\n    content<span class="token operator">:</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\nimport </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token maybe-class-name">ComponentName</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> from \'./src/index.vue\'\n</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token maybe-class-name">ComponentName</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">.install = function (Vue) {\n  Vue.component(</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token maybe-class-name">ComponentName</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">.name, </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token maybe-class-name">ComponentName</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">)\n}\nexport default </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token maybe-class-name">ComponentName</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\n</span><span class="token template-punctuation string">`</span></span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token punctuation">{</span>\n    filename<span class="token operator">:</span> <span class="token string">\'src/index.vue\'</span><span class="token punctuation">,</span>\n    content<span class="token operator">:</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\n&lt;template>\n  &lt;div>&lt;/div>\n&lt;/template>\n&lt;script>\nexport default {\n  name: \'Cm</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token maybe-class-name">ComponentName</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\'\n};\n&lt;/script>\n</span><span class="token template-punctuation string">`</span></span>\n  <span class="token punctuation">}</span><span class="token punctuation">,</span>\n  <span class="token punctuation">{</span>\n    filename<span class="token operator">:</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">../../docs/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>componentname<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">.md</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">,</span>\n    content<span class="token operator">:</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">## </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token maybe-class-name">ComponentName</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span>\n  <span class="token punctuation">}</span>\n<span class="token punctuation">]</span><span class="token punctuation">;</span>\n\n<span class="token comment">// 添加到 components.json</span>\n<span class="token keyword">const</span> componentsFile <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">\'../components.json\'</span><span class="token punctuation">)</span>\n\n<span class="token keyword control-flow">if</span> <span class="token punctuation">(</span>componentsFile<span class="token punctuation">[</span>componentname<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>\n  <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">error</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>componentname<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> 已存在.</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>\n  process<span class="token punctuation">.</span><span class="token method function property-access">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>\n<span class="token punctuation">}</span>\ncomponentsFile<span class="token punctuation">[</span>componentname<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">../packages/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>componentname<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">/index.js</span><span class="token template-punctuation string">`</span></span>\n\n<span class="token keyword">const</span> componentsPath <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span>__dirname<span class="token punctuation">,</span> <span class="token string">\'../components.json\'</span><span class="token punctuation">)</span>\n<span class="token function">fileSave</span><span class="token punctuation">(</span>componentsPath<span class="token punctuation">)</span>\n<span class="token punctuation">.</span><span class="token method function property-access">write</span><span class="token punctuation">(</span><span class="token known-class-name class-name">JSON</span><span class="token punctuation">.</span><span class="token method function property-access">stringify</span><span class="token punctuation">(</span>componentsFile<span class="token punctuation">,</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span> <span class="token string">\'  \'</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">\'utf8\'</span><span class="token punctuation">)</span>\n<span class="token punctuation">.</span><span class="token method function property-access">end</span><span class="token punctuation">(</span><span class="token string">\'\n\'</span><span class="token punctuation">)</span>\n<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token string">\'modified: \'</span><span class="token punctuation">,</span> componentsPath<span class="token punctuation">)</span>\n\n<span class="token comment">// 创建 package</span>\n<span class="token maybe-class-name">Files</span><span class="token punctuation">.</span><span class="token method function property-access">forEach</span><span class="token punctuation">(</span><span class="token parameter">file</span> <span class="token arrow operator">=></span> <span class="token punctuation">{</span>\n  <span class="token keyword">let</span> filePath <span class="token operator">=</span> path<span class="token punctuation">.</span><span class="token method function property-access">join</span><span class="token punctuation">(</span><span class="token maybe-class-name">PackagePath</span><span class="token punctuation">,</span> file<span class="token punctuation">.</span><span class="token property-access">filename</span><span class="token punctuation">)</span>\n  <span class="token function">fileSave</span><span class="token punctuation">(</span>filePath<span class="token punctuation">)</span>\n  <span class="token punctuation">.</span><span class="token method function property-access">write</span><span class="token punctuation">(</span>file<span class="token punctuation">.</span><span class="token property-access">content</span><span class="token punctuation">,</span> <span class="token string">\'utf8\'</span><span class="token punctuation">)</span>\n  <span class="token punctuation">.</span><span class="token method function property-access">end</span><span class="token punctuation">(</span><span class="token string">\'\n\'</span><span class="token punctuation">)</span>\n  <span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token string">\'created: \'</span><span class="token punctuation">,</span> filePath<span class="token punctuation">)</span>\n<span class="token punctuation">}</span><span class="token punctuation">)</span>\n\n<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token string">\'DONE!\'</span><span class="token punctuation">)</span>\n\n<span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span><span class="token operator">--</span>\n\n<span class="token comment">// package.json</span>\n<span class="token string">"scripts"</span><span class="token operator">:</span> <span class="token punctuation">{</span>\n  <span class="token string">"build:entry"</span><span class="token operator">:</span> <span class="token string">"node build/build.entry.js"</span><span class="token punctuation">,</span>\n  <span class="token string">"new"</span><span class="token operator">:</span> <span class="token string">"node build/new.js"</span>\n<span class="token punctuation">}</span><span class="token punctuation">,</span>\n</code></pre>\n<p>最后运行命令添加到npm scripts中，现在新增一个组件只需要运行一条命令即可，比如我要新增商品选择器组件(select-goods)。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token function">npm</span> run new select-goods\n</code></pre>\n<p>这里主要做了下面三件事。</p>\n<ol>\n<li>修改components.json文件，如果某个组件存在，直接退出进程。</li>\n<li>在packages目录下新建组件文件夹，并新建<code>index.js</code>、<code>src/index.vue</code>。</li>\n<li>在doc文件夹下新建一个组件的markdown文件，用来编写该组件的使用文档。</li>\n</ol>\n<p>有一点需要注意，组件的index.vue文件中的name字段，都是以<code>Cm</code>打头（<code>name: \'Cm${ComponentName}\'</code>），这里主要是为了更符合HTML5的自定义组件规范，让我们的组件都带有一个小横线<code>-</code>。比如我们新建的组件名为<code>select-goods</code>，组件名就为<code>CmSelectGoods</code>，实际使用时为<code>&lt;cm-select-goods /&gt;</code>。</p>\n<p>添加好新的组件，然后生成入口文件，接下来只要通过webpack打包后发布到NPM包就可以了，但是我们在这一步是没有做的，而是选用了后编译模式。</p>\n<h4 id="%E5%90%8E%E7%BC%96%E8%AF%91%E7%BB%84%E4%BB%B6">后编译组件<a class="anchor" href="#%E5%90%8E%E7%BC%96%E8%AF%91%E7%BB%84%E4%BB%B6">§</a></h4>\n<p>即组件在发布到NPM包的时候，不进行编译，而是和实际引入组件库的项目一起交给webpack打包，这里参考了滴滴的cube-ui的做法（<a href="https://didi.github.io/cube-ui/#/zh-CN/docs/post-compile">去看看</a>）。</p>\n<p>所以我们在组件的package.json的main字段处的值为<code>src/main.js</code>，这是整个组建的入口文件，而不是经过webpack或者rollup打包后的模块。这样做有几个好处。</p>\n<p>首先当我们的组件库依赖了某个包，比如：lodash，然后我们的项目也依赖了lodash。如果我们的组件库在发布到NPM之前已经进行了打包，我们在项目中引入的又是打包后的文件，那么项目会再次把lodash打包一次，因为项目不知道我们的组件依赖了lodash，明显造成了资源浪费。</p>\n<p><img src="https://file.shenfq.com/18-12-19/11972445.jpg" alt=""></p>\n<p><img src="https://file.shenfq.com/18-12-19/50925545.jpg" alt=""></p>\n<p>除了依赖包，一些工具方法也可以放到组件库中，使用的时候直接进行require，这样就不用在多个项目中来回copy代码，毕竟业务代码库，大部分工具方法都是通用的。</p>\n<p>其次组件库与业务代码使用同一babel版本进行代码转换，可以保持代码的一致性。同时在业务代码中直接使用babel-polyfill，减少两次打包多次引入某些es6api的polyfill。</p>\n<p>说了这么多，要做到后编译其实很简单，只需要发布到NPM上时，不进行webpack打包。然后在项目的webpack的babel-loader的inclues添加组件库的路径即可，省时又省力。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token punctuation">{</span>\n  test<span class="token operator">:</span> <span class="token regex"><span class="token regex-delimiter">/</span><span class="token regex-source language-regex">\.js$</span><span class="token regex-delimiter">/</span></span><span class="token punctuation">,</span>\n  loader<span class="token operator">:</span> <span class="token string">\'babel-loader\'</span><span class="token punctuation">,</span>\n  include<span class="token operator">:</span> <span class="token punctuation">[</span>\n    <span class="token function">resolve</span><span class="token punctuation">(</span><span class="token string">\'src\'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>\n    <span class="token function">resolve</span><span class="token punctuation">(</span><span class="token string">\'node_modules/my-components\'</span><span class="token punctuation">)</span>\n  <span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<h2 id="%E7%BB%84%E4%BB%B6%E7%9A%84%E6%96%87%E6%A1%A3">组件的文档<a class="anchor" href="#%E7%BB%84%E4%BB%B6%E7%9A%84%E6%96%87%E6%A1%A3">§</a></h2>\n<p>之前我们在新增组件的时候，为每个组件都在docs文件夹下新建了一个markdown文件。如果每次都要下载项目到docs目录下查看文档对开发者不太友好，那么我们可以将markdown文件转为vue组件，然后部署到demo网站上。这样就只要编写好markdown文档，就能直接同步在demo网站同步显示。这里也是参考的ElementUI的做法，使用<a href="https://github.com/QingWei-Li/vue-markdown-loader">vue-markdown-loader</a>将markdown文件转为vue组件。</p>\n<pre class="language-javascript"><code class="language-javascript"><span class="token punctuation">{</span>\n  test<span class="token operator">:</span> <span class="token regex"><span class="token regex-delimiter">/</span><span class="token regex-source language-regex">\.md$</span><span class="token regex-delimiter">/</span></span><span class="token punctuation">,</span>\n  use<span class="token operator">:</span> <span class="token punctuation">[</span>\n    <span class="token punctuation">{</span>\n      loader<span class="token operator">:</span> <span class="token string">\'vue-loader\'</span>\n    <span class="token punctuation">}</span><span class="token punctuation">,</span>\n    <span class="token punctuation">{</span>\n      loader<span class="token operator">:</span> <span class="token string">\'vue-markdown-loader/lib/markdown-compiler\'</span><span class="token punctuation">,</span>\n      options<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>\n    <span class="token punctuation">}</span>\n  <span class="token punctuation">]</span>\n<span class="token punctuation">}</span>\n</code></pre>\n<p>该插件通过<code>markdown-it</code>进行markdown文件解析，同时可以自定义<code>markdown-it</code>插件，进行一些个性化的markdown写法，比如代码高亮、可执行的代码，具体使用方式可以参考ElementUI的<a href="https://github.com/ElemeFE/element/blob/dev/build/webpack.demo.js#L75">webpack配置</a>。</p>\n<p><img src="https://file.shenfq.com/18-12-19/18602732.jpg" alt=""></p>\n<h2 id="%E7%BB%84%E4%BB%B6%E5%A6%82%E4%BD%95%E5%8F%91%E5%B8%83">组件如何发布<a class="anchor" href="#%E7%BB%84%E4%BB%B6%E5%A6%82%E4%BD%95%E5%8F%91%E5%B8%83">§</a></h2>\n<p>因为我们要发布到tnpm上，首先需要创建一个tnpm账户，通过<code>tnpm adduser</code>进行账户创建。创建好账户之后，发布到tnpm上，需要使用<code>tnpm publish</code>。</p>\n<p>发布到tnpm因为是公司的内源，所有pkg的name字段一定要包名前面加上<code>@tencent/</code>。</p>\n<pre class="language-json"><code class="language-json"><span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"@tencent/my-components"</span>\n</code></pre>\n<p>发布了包之后，只有发布者有权限更新这个包，这个时候需要添加其他用户到这个包，可以使用如下命令：</p>\n<pre class="language-bash"><code class="language-bash"> tnpm owner <span class="token function">add</span> rtx_at_tencent @tencent/my-components\n</code></pre>\n<p>发布如果有很多步骤，可以通过shell脚本的方式进行发布，下面这个是我们目前项目中使用的。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token shebang important">#!/usr/bin/env bash</span>\n\n<span class="token builtin class-name">set</span> -e\n\n<span class="token keyword">if</span> <span class="token builtin class-name">test</span> -n <span class="token string">"<span class="token variable"><span class="token variable">$(</span><span class="token function">git</span> status --porcelain<span class="token variable">)</span></span>"</span><span class="token punctuation">;</span> <span class="token keyword">then</span>\n  <span class="token builtin class-name">echo</span> <span class="token string">\'push main.js to remote.\'</span> <span class="token operator">></span><span class="token file-descriptor important">&amp;2</span><span class="token punctuation">;</span>\n  <span class="token function">git</span> <span class="token function">add</span> src/main.js\n  <span class="token function">git</span> commit -m <span class="token string">"feat: push main.js to remote."</span>\n  <span class="token function">git</span> push\n<span class="token keyword">fi</span>\n\n<span class="token builtin class-name">echo</span> <span class="token string">"Enter release version: "</span>\n<span class="token builtin class-name">read</span> VERSION\n\n<span class="token builtin class-name">read</span> -p <span class="token string">"Releasing <span class="token variable">$VERSION</span> - are you sure? (y/n)"</span> -n <span class="token number">1</span> -r\n<span class="token builtin class-name">echo</span>    <span class="token comment"># (optional) move to a new line</span>\n<span class="token keyword">if</span> <span class="token punctuation">[</span><span class="token punctuation">[</span> <span class="token environment constant">$REPLY</span> <span class="token operator">=</span>~ ^<span class="token punctuation">[</span>Yy<span class="token punctuation">]</span>$ <span class="token punctuation">]</span><span class="token punctuation">]</span>\n<span class="token keyword">then</span>\n  <span class="token function">npm</span> version <span class="token variable">$VERSION</span> --message <span class="token string">"[release] <span class="token variable">$VERSION</span>"</span>\n  tnpm publish\n<span class="token keyword">fi</span>\n</code></pre>\n<h2 id="%E6%80%BB%E7%BB%93">总结<a class="anchor" href="#%E6%80%BB%E7%BB%93">§</a></h2>\n<p>更多组件化相关知识可以看看民工叔15年的文章：<a href="https://github.com/xufei/blog/issues/22">《Web应用组件化的权衡》</a>，看完之后很有收获，大佬就是大佬，15年写的东西至今一点都不显得过时。</p>\n<p>在基础组件层封装好业务组件后，下一步是否就能够使用拖拽方式，将组件拼接直接生成页面呢？还记得最开始说的，一个组件只做一件事，但是这件事可大可小，如果一个页面做的事就是新建商品、编辑商品，那页面也是一个大组件，最后也是在进行组件的拼接。既然写代码做组件拼接，为什么不能直接用拖拽的方式进行组件拼接呢？这个可能就是我们下一步要做的事情了。</p>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -42,7 +41,7 @@ export default {
         "张家喜"
     ],
     'date': "2018/10/23",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "最近一直在做管理端相关的需求，管理端不比h5每天都有高流量，需要不断地做性能上的优化，以及适配不同设备兼容性。但是管理端也面临着自己的挑战，因为项目越来越大，可配置化的东西就越来越多，管理端的页面也就越多，同时面...",
     'cover': "https://file.shenfq.com/18-12-19/84472576.jpg",
     'categories': [
@@ -60,7 +59,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -80,7 +79,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -103,7 +102,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -125,7 +124,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -145,7 +144,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -165,7 +164,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -186,7 +185,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -206,7 +205,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -227,7 +226,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -247,7 +246,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -268,7 +267,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -288,7 +287,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -309,7 +308,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -332,7 +331,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -352,7 +351,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -372,7 +371,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -395,7 +394,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -416,7 +415,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -438,7 +437,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -460,7 +459,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -481,7 +480,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -502,7 +501,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -524,7 +523,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -546,7 +545,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -567,7 +566,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -588,7 +587,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -609,7 +608,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -630,7 +629,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -651,7 +650,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -672,7 +671,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -694,7 +693,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -717,7 +716,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -738,7 +737,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -760,7 +759,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -779,7 +778,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -801,7 +800,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -822,7 +821,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -844,7 +843,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -864,7 +863,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -885,7 +884,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -908,7 +907,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -932,7 +931,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -955,7 +954,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -974,7 +973,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -993,7 +992,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1017,7 +1016,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1038,7 +1037,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1061,7 +1060,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1082,7 +1081,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1102,7 +1101,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1124,7 +1123,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1145,7 +1144,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1166,7 +1165,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1189,7 +1188,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1211,7 +1210,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1232,7 +1231,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1252,7 +1251,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1273,7 +1272,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1294,7 +1293,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1315,7 +1314,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1337,7 +1336,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1357,7 +1356,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1377,7 +1376,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1398,7 +1397,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1419,7 +1418,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1439,7 +1438,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1460,7 +1459,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1481,7 +1480,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1502,7 +1501,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"

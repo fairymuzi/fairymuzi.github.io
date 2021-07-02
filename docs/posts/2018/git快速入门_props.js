@@ -9,7 +9,6 @@ export default {
             __html: '<h1>git快速入门</h1>\n<h2 id="%E8%83%8C%E6%99%AF">背景<a class="anchor" href="#%E8%83%8C%E6%99%AF">§</a></h2>\n<p>git作为现在最为流行的版本管理系统，大部分公司都使用git进行版本控制，\n并且最大同性交友网站github也是在git的基础上建立的。\n很多人认为git难，在于它的一些概念与之前流行的集中化的版本管理系统有所出入，\n只要通过熟悉git的基本概念，以及git分支切换的流程，想要上手还是很容易的。</p>\n<p>这篇文章将介绍git的一些基本概念以及git常用的一些命令。github官方提供了一套git学习教程，感兴趣可以<a href="https://try.github.io/">去看看</a>。</p>\n<!-- more -->\n<h2 id="%E5%88%86%E5%B8%83%E5%BC%8F%E7%9A%84%E7%89%88%E6%9C%AC%E5%BA%93">分布式的版本库<a class="anchor" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E7%9A%84%E7%89%88%E6%9C%AC%E5%BA%93">§</a></h2>\n<h3 id="%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5">基本概念<a class="anchor" href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5">§</a></h3>\n<p>首先，看看官网是怎么介绍git的。</p>\n<blockquote>\n<p>Git is a free and open source distributed version control system.<br>\nGit是一个免费并且开源的分布式版本管理工具。</p>\n</blockquote>\n<p>重点就在于git的分布式，只需要在项目根目录执行<code>git init</code>你就拥有了一个git版本库，\n同时在该目录下会生成一个<code>.git</code>文件夹，该文件夹用来记录你所有的提交信息，类似与<code>.svn</code>文件夹。\n该文件夹会存储你每次提交的文件的全部信息，只是会经过压缩，具体内容这里不做深入展开。\n如果你对git的内部原理感兴趣可以看\n<a href="https://bingohuang.gitbooks.io/progit2/content/10-git-internals/sections/objects.html">这里</a>。</p>\n<p>与集中式的版本管理工具不同，git的commit之后提交到本地的版本库，\n像svn的commit则是直接提交到服务器的中央版本库。\n这就意味这我们都在本地具有一个版本库，那么多人开发时，我们需要如何管理我们的版本库呢？</p>\n<p>这里git就引入了一个远程版本库的概念，远程版本库并不会记录我们的代码文件，\n只是一个裸仓库，也就是说远程版本库只会保存<code>.git</code>目录下的东西，这也相当于间接的记录我们的代码文件。\n每个人都能让远程版本库同步你本地的commit信息，但是同步之前会检查你本地的版本库是否与远程版本库的提交信息一致，\n如果不一致会提醒你先从远程版本库进行更新。唉，千言万语不如一张图。</p>\n<p><img src="//file.shenfq.com/18-4-14/34749597.jpg" alt="同步到远程版本库"></p>\n<ol>\n<li>当我们告诉远程版本库，我有一个新的提交需要你同步，它会拒绝你。</li>\n<li>因为在你之前有一个人先同步了提交到远程分支，你必须更新他的提交到你本地，你才能继续同步你的提交。</li>\n</ol>\n<p>git在提交到版本库之前，还有一个步骤，那就是添加到暂存区，至于git为什么会存在暂存区，知乎上有个回答我觉得说得挺好的（<a href="https://www.zhihu.com/question/19946553/answer/29033220">传送门</a>）。</p>\n<p>大致意思是说，早期的版本管理工具有成熟的gui，比如用svn，每一次提交都能让你自由选择需要提交哪些文件的修改。</p>\n<p><img src="//file.shenfq.com/18-4-15/73819602.jpg" alt="小乌龟"></p>\n<p>而在命令行下面，这些操作比较麻烦，为了解决这个问题，于是在commit之前增加了一个暂存区，用来存放我们需要提交的文件。好了，我们再回过头来看看git在版本管理上分了哪些部分。</p>\n<p><img src="//file.shenfq.com/18-4-14/41364002.jpg" alt=""></p>\n<h3 id="git%E5%91%BD%E4%BB%A4%E7%AE%80%E4%BB%8B">git命令简介<a class="anchor" href="#git%E5%91%BD%E4%BB%A4%E7%AE%80%E4%BB%8B">§</a></h3>\n<p>了解了这些概念，我们再来看看，如何初始化一个git仓库，并且在修改代码后将提交同步给远程版本库。</p>\n<h4 id="%E5%88%9D%E5%A7%8B%E5%8C%96git%E9%85%8D%E7%BD%AE">初始化git配置<a class="anchor" href="#%E5%88%9D%E5%A7%8B%E5%8C%96git%E9%85%8D%E7%BD%AE">§</a></h4>\n<p>该配置是用来告诉版本库是谁提交代码。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment">#全局设置用户名</span>\n<span class="token function">git</span> config --global user.name <span class="token string">"your name"</span>\n\n<span class="token comment">#全局设置邮箱</span>\n<span class="token function">git</span> config --global user.email <span class="token string">"<a class="token email-link" href="mailto:xxxxxxxxx@qq.com">xxxxxxxxx@qq.com</a>"</span>\n\n</code></pre>\n<h4 id="%E5%88%9D%E5%A7%8B%E5%8C%96git%E4%BB%93%E5%BA%93">初始化git仓库<a class="anchor" href="#%E5%88%9D%E5%A7%8B%E5%8C%96git%E4%BB%93%E5%BA%93">§</a></h4>\n<p>这里有两种方式，一种是新建一个本地版本库，然后手动连接远程版本库，还一种是直接获取远程版本到本地。</p>\n<ol>\n<li>新建本地仓库，并与远程版本库进行连接</li>\n</ol>\n<pre class="language-bash"><code class="language-bash"><span class="token function">mkdir</span> hub <span class="token operator">&amp;&amp;</span> <span class="token builtin class-name">cd</span> hub\n\n<span class="token function">git</span> init  <span class="token comment">#初始化git仓库</span>\n\n<span class="token function">git</span> remote <span class="token function">add</span> origin <a class="token email-link" href="mailto:git@github.com">git@github.com</a>:github/hub.git  <span class="token comment">#关联远程版本库，并取名为origin</span>\n\n<span class="token function">git</span> pull origin master  <span class="token comment">#获取名为origin的远程版本库的提交信息到本地版本库</span>\n</code></pre>\n<ol start="2">\n<li>获取远程的版本库到本地</li>\n</ol>\n<pre class="language-bash"><code class="language-bash">\n<span class="token function">git</span> clone <a class="token email-link" href="mailto:git@github.com">git@github.com</a>:github/hub.git  <span class="token comment">#该命令相当于上面三步的缩写</span>\n\n</code></pre>\n<h4 id="%E4%BF%AE%E6%94%B9%E6%96%87%E4%BB%B6%E5%B9%B6%E6%8F%90%E4%BA%A4%E5%88%B0%E6%9A%82%E5%AD%98%E5%8C%BA">修改文件并提交到暂存区<a class="anchor" href="#%E4%BF%AE%E6%94%B9%E6%96%87%E4%BB%B6%E5%B9%B6%E6%8F%90%E4%BA%A4%E5%88%B0%E6%9A%82%E5%AD%98%E5%8C%BA">§</a></h4>\n<p>我们可以新建一个文件（eg. <code>reamde.md</code>），然后通过add命令，将该文件添加到暂存区，表示该文件是我们要提交到版本库的文件。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment"># 将一个修改后的文件添加到暂存区</span>\n<span class="token function">git</span> <span class="token function">add</span> readme.md\n\n\n<span class="token comment"># gitadd其他用法</span>\n\n<span class="token comment"># 添加所有修改、删除或新建的文件到暂存区</span>\n<span class="token function">git</span> <span class="token function">add</span> <span class="token builtin class-name">.</span>\n<span class="token comment"># 添加所有以js结尾的文件到暂存区</span>\n<span class="token function">git</span> <span class="token function">add</span> *.js\n<span class="token comment"># 添加所有修改、删除或新建的文件到暂存区</span>\n<span class="token comment"># 除了.开头的文件，比如 .gitignore</span>\n<span class="token function">git</span> <span class="token function">add</span> *\n<span class="token comment"># git add --update 的缩写</span>\n<span class="token comment"># 如果再次修改了在暂存区中的文件，可以通过该命令进行更新</span>\n<span class="token function">git</span> <span class="token function">add</span> -u\n<span class="token comment"># 作用与git add . 相同</span>\n<span class="token function">git</span> <span class="token function">add</span> -A\n\n</code></pre>\n<h4 id="%E6%8F%90%E4%BA%A4%E4%BB%A3%E7%A0%81%E5%88%B0%E7%89%88%E6%9C%AC%E5%BA%93">提交代码到版本库<a class="anchor" href="#%E6%8F%90%E4%BA%A4%E4%BB%A3%E7%A0%81%E5%88%B0%E7%89%88%E6%9C%AC%E5%BA%93">§</a></h4>\n<p>我们现在已经把代码添加到了暂存区，接下来就需要把暂存区的代码提交到版本库。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment"># 提交暂存区的代码到版本库</span>\n<span class="token function">git</span> commit -m <span class="token string">\'commit message\'</span>\n\n<span class="token comment"># 如果你重新编辑了一些文件，添加到暂存区，想把这些修改合并到上一次提交</span>\n<span class="token comment"># 然后会出现一个编辑框，让你修改上次的提交信息</span>\n<span class="token function">git</span> commit --amend\n<span class="token comment"># 如果不想修改上次的提交信息</span>\n<span class="token function">git</span> commit --amend --no-edit\n</code></pre>\n<h4 id="%E5%90%8C%E6%AD%A5%E8%BF%9C%E7%A8%8B%E7%89%88%E6%9C%AC%E5%BA%93%E5%88%B0%E6%9C%AC%E5%9C%B0%E7%89%88%E6%9C%AC%E5%BA%93">同步远程版本库到本地版本库<a class="anchor" href="#%E5%90%8C%E6%AD%A5%E8%BF%9C%E7%A8%8B%E7%89%88%E6%9C%AC%E5%BA%93%E5%88%B0%E6%9C%AC%E5%9C%B0%E7%89%88%E6%9C%AC%E5%BA%93">§</a></h4>\n<p>最好每次把自己的提交信息同步给远程版本库之前，先把远程版本库同步到本地。\n这里会涉及到分支的概念，我们先放到一边，本地版本库默认默认为master分支\n（ps. 也就是我们常说的主干）。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment"># 将名为origin的远程版本库的master分支同步到本地的当前分支</span>\n<span class="token function">git</span> pull origin master\n\n<span class="token comment"># git pull命令其实是如下两个命令的简写</span>\n<span class="token function">git</span> fetch origin master\n<span class="token function">git</span> merge origin/master\n</code></pre>\n<h4 id="%E5%90%8C%E6%AD%A5%E6%9C%AC%E5%9C%B0%E7%89%88%E6%9C%AC%E5%BA%93%E5%88%B0%E8%BF%9C%E7%A8%8B%E7%89%88%E6%9C%AC%E5%BA%93">同步本地版本库到远程版本库<a class="anchor" href="#%E5%90%8C%E6%AD%A5%E6%9C%AC%E5%9C%B0%E7%89%88%E6%9C%AC%E5%BA%93%E5%88%B0%E8%BF%9C%E7%A8%8B%E7%89%88%E6%9C%AC%E5%BA%93">§</a></h4>\n<p>git将本地版本库同步到远程版本库使用push命令，但是每次都需要指定同步给哪个版本库的哪一个分支，\n这时，你可以使用<code>-u</code>参数将本地版本库与远程版本库绑定，以后提交就不需要指定，默认提交到那个版本库。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment"># 将本地的提交同步给远程版本库</span>\n<span class="token function">git</span> push origin master\n\n<span class="token comment"># 绑定默认提交的远程版本库</span>\n<span class="token function">git</span> push -u origin master\n<span class="token comment"># 下次提交只需要使用git push就可以了</span>\n<span class="token function">git</span> push\n</code></pre>\n<h2 id="git%E5%88%86%E6%94%AF">git分支<a class="anchor" href="#git%E5%88%86%E6%94%AF">§</a></h2>\n<p>git的分支是git版本管理的重点，git的分支对比svn十分轻量级。</p>\n<p>注意，前方高能！！！</p>\n<p>为了讲清楚这些概念得画一些图，没办法美术功底太好，话又不会说，只好画图写教程了。</p>\n<h3 id="%E4%BD%95%E4%B8%BA%E5%88%86%E6%94%AF">何为分支<a class="anchor" href="#%E4%BD%95%E4%B8%BA%E5%88%86%E6%94%AF">§</a></h3>\n<p>要搞清楚git的分支概念，首先需要知道git是如何区分不同的分支的。\n在git中，一个分支就会存在有一个指针，该指针指向一个commit。\n每次拉分支就会在当前commit上创建一个新的指针，而且分支的指针每次都会跟随commit前移。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment"># 查看当前分支</span>\n<span class="token function">git</span> branch <span class="token comment">#刚刚初始化的版本库默认在master分支上</span>\n<span class="token comment"># 新建分支</span>\n<span class="token function">git</span> branch branch <span class="token comment">#新建一个名为branch的分支</span>\n</code></pre>\n<p><img src="//file.shenfq.com/18-4-17/92923237.jpg" alt="新建分支"></p>\n<p>那么现在有个问题，在新建一个分支之后，两个分支指向同一个commit，到底怎么区分现在哪个分支上呢？\n这里就要引入一个新的指针<code>HEAD</code>，用来指向当前所处的分支。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment"># 切换分支</span>\n<span class="token function">git</span> checkout branch <span class="token comment">#切换到branch分支</span>\n\n<span class="token comment"># 创建分支与切换分支可以简写为一个命令</span>\ngti checkout -b branch\n</code></pre>\n<p><img src="//file.shenfq.com/18-4-17/94032614.jpg" alt="HEAD指向当前分支"></p>\n<p>现在在branch分支上进行了一次commit，然后branch指针就像向前移动。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token function">vim</span> xxx.txt\n<span class="token function">git</span> add.\n<span class="token function">git</span> commit -m <span class="token string">\'modify xxx.txt\'</span>\n</code></pre>\n<p><img src="//file.shenfq.com/18-4-17/27007514.jpg" alt="branch分支前移"></p>\n<p>然后再切换到master分支，进行一次提交，看下图就会发现，这里会出现分支。\n<code>master</code>分支表示的是commit1、2、3、5，而<code>branch</code>分支commit1、2、3、4。\n到这里就很容易理解为什么说git的分支很轻量级，因为对git来说一个分支只是会新建一个指针，\n并指向一个提交，而不是拷贝所有的代码文件到另一个目录。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token function">git</span> checkout master <span class="token comment">#切换到master分支</span>\n<span class="token function">vim</span> yyy.txt\n<span class="token function">git</span> add.\n<span class="token function">git</span> commit -m <span class="token string">\'modify yyy.txt\'</span>\n</code></pre>\n<p><img src="//file.shenfq.com/18-4-17/94198720.jpg" alt="不同分支的提交不会相互影响"></p>\n<h3 id="%E5%90%88%E5%B9%B6%E5%88%86%E6%94%AF">合并分支<a class="anchor" href="#%E5%90%88%E5%B9%B6%E5%88%86%E6%94%AF">§</a></h3>\n<p>天下三分，分久必合，合久必分。\n有分支就会有合并，举个例子，项目中突然来了个bug，但是手头的代码还没写完，不可能直接提交。所以你要先从<code>master</code>分支拉出一个<code>Fix-Bug</code>分支，在分支上修改好之后再进行提交。最后这个提交需要merge回<code>master</code>分支。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token comment">#1. 先创建feature分支，将手头的代码提交到feature分支上</span>\n<span class="token function">git</span> checkout -b feature\n<span class="token function">git</span> <span class="token function">add</span> <span class="token builtin class-name">.</span>\n<span class="token function">git</span> commit -m <span class="token string">\'feature branch commit\'</span>\n\n<span class="token comment">#2. 切换回master分支，从master拉一个新的分支</span>\n<span class="token function">git</span> checkout master\n<span class="token function">git</span> checkout -b Fix-Bug\n\n<span class="token comment">#3. bug修改完毕后，提交代码到Fix-Bug分支</span>\n<span class="token function">git</span> <span class="token function">add</span> <span class="token builtin class-name">.</span>\n<span class="token function">git</span> commit -m <span class="token string">\'fixed bug\'</span>\n\n<span class="token comment">#4. 把修复了bug的代码merge到master分支</span>\n<span class="token function">git</span> checkout master <span class="token comment">#重新切换回master分支</span>\n<span class="token function">git</span> pull origin master <span class="token comment">#把同事提交的代码先更新到本地</span>\n<span class="token function">git</span> merge Fix-Bug\n<span class="token function">git</span> push origin master <span class="token comment">#将merge的代码同步到线上，进行bug修复</span>\n<span class="token function">git</span> branch -d Fix-Bug <span class="token comment">#bug修复后将Fix-Bug分支删除</span>\n</code></pre>\n<p><img src="//file.shenfq.com/18-4-17/17626900.jpg" alt="merge"></p>\n<p>上面只是进行了简单的演示，真实情况比这更加复杂。</p>\n<p>观察上图，可以发现在<code>merge</code>操作后，自动会生成一个新的commit。如果你不想生成这个commit，\nmerge之后还有其他修改，或者想要自己写commit的message，也可以使用如下命令来取消自动commit。</p>\n<pre class="language-bash"><code class="language-bash"><span class="token function">git</span> merge --no-commit branch\n</code></pre>\n<h4 id="merge%E7%9A%84%E7%89%B9%E6%AE%8A%E6%83%85%E5%86%B5%E5%86%B2%E7%AA%81">merge的特殊情况：冲突<a class="anchor" href="#merge%E7%9A%84%E7%89%B9%E6%AE%8A%E6%83%85%E5%86%B5%E5%86%B2%E7%AA%81">§</a></h4>\n<p>有时候远程版本库和本地版本库进行merge的时候，你和你的同事可能同事修改了同一个文件的同一个位置，这就会出现冲突。\n出现冲突怎么办，当然是解决冲突。解决冲突你可以自己一个个手动去解决，当然你也可以使用一些工具，比如下图使用vscode来解决冲突。</p>\n<p><img src="//file.shenfq.com/18-4-17/65016361.jpg" alt="vscode解决冲突"></p>\n<p>可以通过<code>git status</code>查看哪些文件出现了冲突，通过编辑器将所有冲突解决后就可以进行提交了。</p>\n<p><img src="//file.shenfq.com/18-4-17/23041771.jpg" alt="发生冲突的文件"></p>\n<h4 id="%E5%B8%B8%E8%A7%81%E7%9A%84git%E5%88%86%E6%94%AF%E7%AE%A1%E7%90%86%E6%A8%A1%E5%BC%8Fgitflow">常见的git分支管理模式：gitflow<a class="anchor" href="#%E5%B8%B8%E8%A7%81%E7%9A%84git%E5%88%86%E6%94%AF%E7%AE%A1%E7%90%86%E6%A8%A1%E5%BC%8Fgitflow">§</a></h4>\n<p><img src="//file.shenfq.com/18-4-17/29960391.jpg" alt=""></p>\n<p>这里主要涉及常用的分支的命名规范：</p>\n<ol>\n<li>master主干，用来存放最稳定的代码</li>\n<li>hotfix，用来紧急修改bug的分支</li>\n<li>release，用来发布上线的分支</li>\n<li>feature，特性分支，每一个新功能都应该有一个特性分支</li>\n<li>develop，开发分支，当特性开发完毕后，将特性分支合并到develop分支</li>\n</ol>\n<h2 id="%E5%8F%82%E8%80%83">参考<a class="anchor" href="#%E5%8F%82%E8%80%83">§</a></h2>\n<p>这里只是介绍了git中最基本的一些概念，git还有很多高级命令待大家去发现，比如rebase、reset、stash。</p>\n<p>最后给大家推荐一些git的好教程。</p>\n<ol>\n<li><a href="https://git-scm.com/book/zh/v2">pro git</a></li>\n<li><a href="https://mp.weixin.qq.com/s/hYjGyIdLK3UCEVF0lRYRCg">git常用命令汇总</a></li>\n<li><a href="https://segmentfault.com/a/1190000002783245">git push与pull的默认行为</a></li>\n</ol>'
         } }),
     'head': React.createElement(React.Fragment, null,
-        React.createElement("script", { src: "/assets/hm.js" }),
         React.createElement("link", { crossOrigin: "anonymous", href: "https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css", integrity: "sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X", rel: "stylesheet" })),
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
@@ -46,7 +45,7 @@ export default {
         "张家喜"
     ],
     'date': "2018/04/17",
-    'updated': "2021-07-02T07:13:34.000Z",
+    'updated': "2021-07-02T07:36:43.000Z",
     'excerpt': "背景 git作为现在最为流行的版本管理系统，大部分公司都使用git进行版本控制， 并且最大同性交友网站github也是在git的基础上建立的。 很多人认为git难，在于它的一些概念与之前流行的集中化的版本管理系统有所出入， 只要通过...",
     'cover': "//file.shenfq.com/18-4-14/34749597.jpg",
     'thumbnail': "//file.shenfq.com/18-4-17/53844391.jpg",
@@ -65,7 +64,7 @@ export default {
                 "title": "Go 并发",
                 "link": "posts/2021/go/go 并发.html",
                 "date": "2021/06/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -85,7 +84,7 @@ export default {
                 "title": "我回长沙了",
                 "link": "posts/2021/我回长沙了.html",
                 "date": "2021/06/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -108,7 +107,7 @@ export default {
                 "title": "JavaScript 异步编程史",
                 "link": "posts/2021/JavaScript 异步编程史.html",
                 "date": "2021/06/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -130,7 +129,7 @@ export default {
                 "title": "Go 反射机制",
                 "link": "posts/2021/go/go 反射机制.html",
                 "date": "2021/04/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -150,7 +149,7 @@ export default {
                 "title": "Go 错误处理",
                 "link": "posts/2021/go/go 错误处理.html",
                 "date": "2021/04/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -170,7 +169,7 @@ export default {
                 "title": "消费主义的陷阱",
                 "link": "posts/2021/消费主义.html",
                 "date": "2021/04/21",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -191,7 +190,7 @@ export default {
                 "title": "Go 结构体与方法",
                 "link": "posts/2021/go/go 结构体.html",
                 "date": "2021/04/19",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -211,7 +210,7 @@ export default {
                 "title": "Go 函数与指针",
                 "link": "posts/2021/go/go 函数与指针.html",
                 "date": "2021/04/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -232,7 +231,7 @@ export default {
                 "title": "Go 数组与切片",
                 "link": "posts/2021/go/go 数组与切片.html",
                 "date": "2021/04/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -252,7 +251,7 @@ export default {
                 "title": "Go 常量与变量",
                 "link": "posts/2021/go/go 变量与常量.html",
                 "date": "2021/04/06",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -273,7 +272,7 @@ export default {
                 "title": "Go 模块化",
                 "link": "posts/2021/go/go module.html",
                 "date": "2021/04/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -293,7 +292,7 @@ export default {
                 "title": "下一代的模板引擎：lit-html",
                 "link": "posts/2021/lit-html.html",
                 "date": "2021/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -314,7 +313,7 @@ export default {
                 "title": "读《贫穷的本质》引发的一些思考",
                 "link": "posts/2021/读《贫穷的本质》.html",
                 "date": "2021/03/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -337,7 +336,7 @@ export default {
                 "title": "Web Components 上手指南",
                 "link": "posts/2021/Web Components 上手指南.html",
                 "date": "2021/02/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -357,7 +356,7 @@ export default {
                 "title": "MobX 上手指南",
                 "link": "posts/2021/MobX 上手指南.html",
                 "date": "2021/01/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -377,7 +376,7 @@ export default {
                 "title": "介绍两种 CSS 方法论",
                 "link": "posts/2021/介绍两种 CSS 方法论.html",
                 "date": "2021/01/05",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -400,7 +399,7 @@ export default {
                 "title": "2020年终总结",
                 "link": "posts/2021/2020总结.html",
                 "date": "2021/01/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -421,7 +420,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（二）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（二）.html",
                 "date": "2020/12/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -443,7 +442,7 @@ export default {
                 "title": "Node.js 服务性能翻倍的秘密（一）",
                 "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
                 "date": "2020/12/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -465,7 +464,7 @@ export default {
                 "title": "我是如何阅读源码的",
                 "link": "posts/2020/我是怎么读源码的.html",
                 "date": "2020/12/7",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -486,7 +485,7 @@ export default {
                 "title": "Vue3 Teleport 组件的实践及原理",
                 "link": "posts/2020/Vue3 Teleport 组件的实践及原理.html",
                 "date": "2020/12/1",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -507,7 +506,7 @@ export default {
                 "title": "【翻译】CommonJS 是如何导致打包后体积增大的？",
                 "link": "posts/2020/【翻译】CommonJS 是如何导致打包体积增大的？.html",
                 "date": "2020/11/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -529,7 +528,7 @@ export default {
                 "title": "Vue3 模板编译优化",
                 "link": "posts/2020/Vue3 模板编译优化.html",
                 "date": "2020/11/11",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -551,7 +550,7 @@ export default {
                 "title": "小程序依赖分析",
                 "link": "posts/2020/小程序依赖分析.html",
                 "date": "2020/11/02",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -572,7 +571,7 @@ export default {
                 "title": "React 架构的演变 - Hooks 的实现",
                 "link": "posts/2020/React 架构的演变 - Hooks 的实现.html",
                 "date": "2020/10/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -593,7 +592,7 @@ export default {
                 "title": "Vue 3 的组合 API 如何请求数据？",
                 "link": "posts/2020/Vue 3 的组合 API 如何请求数据？.html",
                 "date": "2020/10/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -614,7 +613,7 @@ export default {
                 "title": "React 架构的演变 - 更新机制",
                 "link": "posts/2020/React 架构的演变 - 更新机制.html",
                 "date": "2020/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -635,7 +634,7 @@ export default {
                 "title": "React 架构的演变 - 从递归到循环",
                 "link": "posts/2020/React 架构的演变 - 从递归到循环.html",
                 "date": "2020/09/29",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -656,7 +655,7 @@ export default {
                 "title": "React 架构的演变 - 从同步到异步",
                 "link": "posts/2020/React 架构的演变 - 从同步到异步.html",
                 "date": "2020/09/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -677,7 +676,7 @@ export default {
                 "title": "Webpack5 跨应用代码共享-Module Federation",
                 "link": "posts/2020/Webpack5 Module Federation.html",
                 "date": "2020/09/14",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -699,7 +698,7 @@ export default {
                 "title": "面向未来的前端构建工具-vite",
                 "link": "posts/2020/面向未来的前端构建工具-vite.html",
                 "date": "2020/09/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -722,7 +721,7 @@ export default {
                 "title": "手把手教你实现 Promise",
                 "link": "posts/2020/手把手教你实现 Promise .html",
                 "date": "2020/09/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -743,7 +742,7 @@ export default {
                 "title": "你不知道的 TypeScript 高级类型",
                 "link": "posts/2020/你不知道的 TypeScript 高级类型.html",
                 "date": "2020/08/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -765,7 +764,7 @@ export default {
                 "title": "从零开始实现 VS Code 基金插件",
                 "link": "posts/2020/从零开始实现VS Code基金插件.html",
                 "date": "2020/08/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -784,7 +783,7 @@ export default {
                 "title": "Vue 模板编译原理",
                 "link": "posts/2020/Vue模板编译原理.html",
                 "date": "2020/08/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -806,7 +805,7 @@ export default {
                 "title": "小程序自动化测试",
                 "link": "posts/2020/小程序自动化测试.html",
                 "date": "2020/08/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -827,7 +826,7 @@ export default {
                 "title": "Node.js 与二进制数据流",
                 "link": "posts/2020/Node.js 与二进制数据流.html",
                 "date": "2020/06/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -849,7 +848,7 @@ export default {
                 "title": "【翻译】Node.js CLI 工具最佳实践",
                 "link": "posts/2020/【翻译】Node.js CLI 工具最佳实践.html",
                 "date": "2020/02/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -869,7 +868,7 @@ export default {
                 "title": "2019年终总结",
                 "link": "posts/2020/2019年终总结.html",
                 "date": "2020/01/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -890,7 +889,7 @@ export default {
                 "title": "前端模块化的今生",
                 "link": "posts/2019/前端模块化的今生.html",
                 "date": "2019/11/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -913,7 +912,7 @@ export default {
                 "title": "前端模块化的前世",
                 "link": "posts/2019/前端模块化的前世.html",
                 "date": "2019/10/08",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -937,7 +936,7 @@ export default {
                 "title": "深入理解 ESLint",
                 "link": "posts/2019/深入理解 ESLint.html",
                 "date": "2019/07/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -960,7 +959,7 @@ export default {
                 "title": "USB 科普",
                 "link": "posts/2019/USB.html",
                 "date": "2019/06/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -979,7 +978,7 @@ export default {
                 "title": "虚拟DOM到底是什么？",
                 "link": "posts/2019/虚拟DOM到底是什么？.html",
                 "date": "2019/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -998,7 +997,7 @@ export default {
                 "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
                 "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
                 "date": "2019/05/01",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1022,7 +1021,7 @@ export default {
                 "title": "【翻译】Vue.js 的注意事项与技巧",
                 "link": "posts/2019/【翻译】Vue.js 的注意事项与技巧.html",
                 "date": "2019/03/31",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1043,7 +1042,7 @@ export default {
                 "title": "【翻译】在 React Hooks 中如何请求数据？",
                 "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
                 "date": "2019/03/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1066,7 +1065,7 @@ export default {
                 "title": "深度神经网络原理与实践",
                 "link": "posts/2019/深度神经网络原理与实践.html",
                 "date": "2019/03/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1087,7 +1086,7 @@ export default {
                 "title": "工作两年的迷茫",
                 "link": "posts/2019/工作两年的迷茫.html",
                 "date": "2019/02/20",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1107,7 +1106,7 @@ export default {
                 "title": "推荐系统入门",
                 "link": "posts/2019/推荐系统入门.html",
                 "date": "2019/01/30",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1129,7 +1128,7 @@ export default {
                 "title": "梯度下降与线性回归",
                 "link": "posts/2019/梯度下降与线性回归.html",
                 "date": "2019/01/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1150,7 +1149,7 @@ export default {
                 "title": "2018年终总结",
                 "link": "posts/2019/2018年终总结.html",
                 "date": "2019/01/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1171,7 +1170,7 @@ export default {
                 "title": "Node.js的进程管理",
                 "link": "posts/2018/Node.js的进程管理.html",
                 "date": "2018/12/28",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1194,7 +1193,7 @@ export default {
                 "title": "koa-router源码解析",
                 "link": "posts/2018/koa-router源码解析.html",
                 "date": "2018/12/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1216,7 +1215,7 @@ export default {
                 "title": "koa2源码解析",
                 "link": "posts/2018/koa2源码解析.html",
                 "date": "2018/11/27",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1237,7 +1236,7 @@ export default {
                 "title": "前端业务组件化实践",
                 "link": "posts/2018/前端业务组件化实践.html",
                 "date": "2018/10/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1257,7 +1256,7 @@ export default {
                 "title": "ElementUI的构建流程",
                 "link": "posts/2018/ElementUI的构建流程.html",
                 "date": "2018/09/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1278,7 +1277,7 @@ export default {
                 "title": "seajs源码解读",
                 "link": "posts/2018/seajs源码解读.html",
                 "date": "2018/08/15",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1299,7 +1298,7 @@ export default {
                 "title": "使用ESLint+Prettier来统一前端代码风格",
                 "link": "posts/2018/使用ESLint+Prettier来统一前端代码风格.html",
                 "date": "2018/06/18",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1320,7 +1319,7 @@ export default {
                 "title": "webpack4初探",
                 "link": "posts/2018/webpack4初探.html",
                 "date": "2018/06/09",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1342,7 +1341,7 @@ export default {
                 "title": "git快速入门",
                 "link": "posts/2018/git快速入门.html",
                 "date": "2018/04/17",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1362,7 +1361,7 @@ export default {
                 "title": "RequireJS源码分析（下）",
                 "link": "posts/2018/RequireJS源码分析（下）.html",
                 "date": "2018/02/25",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1382,7 +1381,7 @@ export default {
                 "title": "2017年终总结",
                 "link": "posts/2018/2017年终总结.html",
                 "date": "2018/01/07",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1403,7 +1402,7 @@ export default {
                 "title": "RequireJS源码分析（上）",
                 "link": "posts/2017/RequireJS源码分析（上）.html",
                 "date": "2017/12/23",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1424,7 +1423,7 @@ export default {
                 "title": "【翻译】深入ES6模块",
                 "link": "posts/2017/ES6模块.html",
                 "date": "2017/11/13",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1444,7 +1443,7 @@ export default {
                 "title": "babel到底该如何配置？",
                 "link": "posts/2017/babel到底该如何配置？.html",
                 "date": "2017/10/22",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1465,7 +1464,7 @@ export default {
                 "title": "JavaScript中this关键字",
                 "link": "posts/2017/JavaScript中this关键字.html",
                 "date": "2017/10/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1486,7 +1485,7 @@ export default {
                 "title": "linux下升级npm以及node",
                 "link": "posts/2017/linux下升级npm以及node.html",
                 "date": "2017/06/12",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
@@ -1507,7 +1506,7 @@ export default {
                 "title": "Gulp入门指南",
                 "link": "posts/2017/Gulp入门指南.html",
                 "date": "2017/05/24",
-                "updated": "2021-07-02T07:13:34.000Z",
+                "updated": "2021-07-02T07:36:43.000Z",
                 "author": "shenfq",
                 "contributors": [
                     "张家喜"
