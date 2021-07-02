@@ -15,209 +15,282 @@ export default {
         "isPost": false,
         "posts": [
             {
-                "pagePath": "posts/bootstrap_4_preview.md",
-                "title": "Bootstrap 4 初探",
-                "link": "posts/bootstrap_4_preview.html",
-                "date": "2021-07-01T05:12:43.000Z",
+                "pagePath": "posts/2021/介绍两种 CSS 方法论.md",
+                "title": "介绍两种 CSS 方法论",
+                "link": "posts/2021/介绍两种 CSS 方法论.html",
+                "date": "2021/01/05",
                 "updated": null,
-                "author": "muzi",
+                "author": "shenfq",
                 "contributors": [
-                    "muzi"
+                    "Shenfq"
                 ],
                 "categories": [
-                    "编程世界"
+                    "前端"
                 ],
                 "tags": [
-                    "Bootstrap",
-                    "CSS"
+                    "CSS",
+                    "前端",
+                    "样式",
+                    "组件化",
+                    "工程化"
                 ],
-                "excerpt": "Bootstrap 作为 GitHub 上 Stars 最多的项目，可以说是万众瞩目，issues 和 pull requests 也居高不下，足以看出其后劲依然很足。 截止到本文发布，Bootstrap 4 已经推出 alpha 2 版本一个多月了，让我们一起玩转 Bootstrap 4 ..."
-            },
-            {
-                "pagePath": "posts/mobi-css_v3.md",
-                "title": "Mobi.css v3 发布了，一个轻量、可拓展、移动端优先的 CSS 框架",
-                "link": "posts/mobi-css_v3.html",
-                "date": "2017-09-04T00:00:00.000Z",
-                "updated": null,
-                "author": "muzi",
-                "contributors": [
-                    "muzi"
-                ],
-                "categories": [
-                    "编程世界"
-                ],
-                "tags": [
-                    "Mobi.css",
-                    "CSS"
-                ],
-                "excerpt": " - GitHub: https://github.com/mobi-css/mobi.css - 官网：http://getmobicss.com/ 简单介绍 - 轻量级：压缩 gzip 后只有 2.6 kb - 可拓展：可以引入 plugin 来拓展 Mobi.css ，并且每个 plugin 都可以独立于框架使用 - 移动端..."
-            },
-            {
-                "pagePath": "posts/mobi-css.md",
-                "title": "「Mobi.css」轻量，灵活的移动端 css 框架",
-                "link": "posts/mobi-css.html",
-                "date": "2016-08-29T00:00:00.000Z",
-                "updated": null,
-                "author": "muzi",
-                "contributors": [
-                    "muzi"
-                ],
-                "categories": [
-                    "编程世界"
-                ],
-                "tags": [
-                    "Mobi.css",
-                    "CSS"
-                ],
-                "excerpt": "最近做了一个 CSS 框架，颇废了一番功夫。 这里先把它分享给大家，欢迎 Star，欢迎试用！ - GitHub - Homepage 简单介绍 Mobi.css 是一个轻量，灵活的移动端 CSS 框架。特点如下： - 压缩后只有 4.6kb，比 Skeleton、Pure.css、...",
-                "cover": "https://i.v2ex.co/6v65Q0LY.png"
+                "excerpt": "前言 说起 CSS 命名规范，大家应该都很熟悉，或者应该听说过 BEM 。BEM 是由 Yandex 团队提出的一种 CSS Class 命名方法，旨在帮助开发人员创建更好的且结构一致的 CSS 模块。 BEM 将页面的类名分为块（Block）、元素（Element...",
+                "cover": "https://file.shenfq.com/pic/20210103214204.png"
             }
         ],
         "categories": [
             {
-                "name": "编程世界",
-                "count": 47
+                "name": "前端",
+                "count": 23
             },
             {
-                "name": "多彩生活",
+                "name": "Go",
+                "count": 8
+            },
+            {
+                "name": "Node.js",
+                "count": 8
+            },
+            {
+                "name": "前端工程",
                 "count": 7
             },
             {
-                "name": "编程世界2",
-                "count": 1
-            }
-        ],
-        "tags": [
-            {
-                "name": "JavaScript",
-                "count": 16
-            },
-            {
-                "name": "总结思考",
-                "count": 9
-            },
-            {
-                "name": "分享",
+                "name": "模块化",
                 "count": 6
             },
             {
-                "name": "Mobi.css",
+                "name": "年终总结",
                 "count": 4
             },
             {
-                "name": "CSS",
+                "name": "机器学习",
                 "count": 3
             },
             {
-                "name": "Grunt",
+                "name": "随便写写",
                 "count": 3
             },
             {
-                "name": "Hexo",
-                "count": 3
-            },
-            {
-                "name": "Markdown",
-                "count": 3
-            },
-            {
-                "name": "Fetch",
+                "name": "微信小程序",
                 "count": 2
-            },
-            {
-                "name": "GitHub",
-                "count": 2
-            },
-            {
-                "name": "mazimd",
-                "count": 2
-            },
-            {
-                "name": "React",
-                "count": 2
-            },
-            {
-                "name": "React Native",
-                "count": 2
-            },
-            {
-                "name": "TypeScript",
-                "count": 2
-            },
-            {
-                "name": "V2HOT",
-                "count": 2
-            },
-            {
-                "name": "Windows",
-                "count": 2
-            },
-            {
-                "name": "微软",
-                "count": 2
-            },
-            {
-                "name": "测试",
-                "count": 2
-            },
-            {
-                "name": "翻译",
-                "count": 2
-            },
-            {
-                "name": "Android",
-                "count": 1
-            },
-            {
-                "name": "Array",
-                "count": 1
-            },
-            {
-                "name": "AST",
-                "count": 1
-            },
-            {
-                "name": "Bootstrap",
-                "count": 1
-            },
-            {
-                "name": "Canvas",
-                "count": 1
-            },
-            {
-                "name": "Debug",
-                "count": 1
-            },
-            {
-                "name": "ESLint",
-                "count": 1
-            },
-            {
-                "name": "Flico",
-                "count": 1
-            },
-            {
-                "name": "GeoJSON",
-                "count": 1
             },
             {
                 "name": "Git",
                 "count": 1
             },
             {
-                "name": "Git Hooks",
+                "name": "Promise",
                 "count": 1
             },
             {
-                "name": "Google Analytics",
+                "name": "VSCode",
                 "count": 1
             },
             {
-                "name": "Hybrid App",
+                "name": "其他",
                 "count": 1
             },
             {
-                "name": "Hyper-V",
+                "name": "读后感",
+                "count": 1
+            }
+        ],
+        "tags": [
+            {
+                "name": "前端",
+                "count": 24
+            },
+            {
+                "name": "前端框架",
+                "count": 11
+            },
+            {
+                "name": "前端工程化",
+                "count": 10
+            },
+            {
+                "name": "模块化",
+                "count": 9
+            },
+            {
+                "name": "Go",
+                "count": 8
+            },
+            {
+                "name": "JavaScript",
+                "count": 8
+            },
+            {
+                "name": "Node",
+                "count": 7
+            },
+            {
+                "name": "Vue.js",
+                "count": 7
+            },
+            {
+                "name": "工作",
+                "count": 7
+            },
+            {
+                "name": "总结",
+                "count": 6
+            },
+            {
+                "name": "感悟",
+                "count": 6
+            },
+            {
+                "name": "React",
+                "count": 5
+            },
+            {
+                "name": "翻译",
+                "count": 5
+            },
+            {
+                "name": "机器学习",
+                "count": 3
+            },
+            {
+                "name": "组件化",
+                "count": 3
+            },
+            {
+                "name": "CommonJS",
+                "count": 2
+            },
+            {
+                "name": "Components",
+                "count": 2
+            },
+            {
+                "name": "es6",
+                "count": 2
+            },
+            {
+                "name": "ESLint",
+                "count": 2
+            },
+            {
+                "name": "Koa",
+                "count": 2
+            },
+            {
+                "name": "Promise",
+                "count": 2
+            },
+            {
+                "name": "react",
+                "count": 2
+            },
+            {
+                "name": "router",
+                "count": 2
+            },
+            {
+                "name": "Web Components",
+                "count": 2
+            },
+            {
+                "name": "webpack",
+                "count": 2
+            },
+            {
+                "name": "代码格式化",
+                "count": 2
+            },
+            {
+                "name": "前端模块化",
+                "count": 2
+            },
+            {
+                "name": "小程序",
+                "count": 2
+            },
+            {
+                "name": "工程化",
+                "count": 2
+            },
+            {
+                "name": "微信小程序",
+                "count": 2
+            },
+            {
+                "name": "性能",
+                "count": 2
+            },
+            {
+                "name": "数学",
+                "count": 2
+            },
+            {
+                "name": "模板",
+                "count": 2
+            },
+            {
+                "name": "算法",
+                "count": 2
+            },
+            {
+                "name": "编译",
+                "count": 2
+            },
+            {
+                "name": "路由",
+                "count": 2
+            },
+            {
+                "name": "AMD",
+                "count": 1
+            },
+            {
+                "name": "async/await",
+                "count": 1
+            },
+            {
+                "name": "babel",
+                "count": 1
+            },
+            {
+                "name": "Buffer",
+                "count": 1
+            },
+            {
+                "name": "cluster",
+                "count": 1
+            },
+            {
+                "name": "CMD",
+                "count": 1
+            },
+            {
+                "name": "CSS",
+                "count": 1
+            },
+            {
+                "name": "ES Module",
+                "count": 1
+            },
+            {
+                "name": "fastify",
+                "count": 1
+            },
+            {
+                "name": "fetch",
+                "count": 1
+            },
+            {
+                "name": "Generator",
+                "count": 1
+            },
+            {
+                "name": "git",
+                "count": 1
+            },
+            {
+                "name": "gulp",
                 "count": 1
             },
             {
@@ -225,7 +298,19 @@ export default {
                 "count": 1
             },
             {
-                "name": "Linux",
+                "name": "js基础",
+                "count": 1
+            },
+            {
+                "name": "linux",
+                "count": 1
+            },
+            {
+                "name": "MobX",
+                "count": 1
+            },
+            {
+                "name": "node",
                 "count": 1
             },
             {
@@ -233,95 +318,195 @@ export default {
                 "count": 1
             },
             {
-                "name": "On call",
+                "name": "offer",
                 "count": 1
             },
             {
-                "name": "Pagic",
+                "name": "react hooks",
                 "count": 1
             },
             {
-                "name": "Puppeteer",
+                "name": "Snabbdom",
                 "count": 1
             },
             {
-                "name": "README",
+                "name": "Stream",
                 "count": 1
             },
             {
-                "name": "Samba",
+                "name": "this",
                 "count": 1
             },
             {
-                "name": "TopoJSON",
+                "name": "TypeScript",
                 "count": 1
             },
             {
-                "name": "Tutorial",
+                "name": "USB",
                 "count": 1
             },
             {
-                "name": "UglifyJS",
+                "name": "virtual dom",
                 "count": 1
             },
             {
-                "name": "VituralBox",
+                "name": "VSCode",
                 "count": 1
             },
             {
-                "name": "WebViewJavascriptBridge",
+                "name": "Webpack",
                 "count": 1
             },
             {
-                "name": "Wiki",
+                "name": "中间件",
                 "count": 1
             },
             {
-                "name": "YUI",
+                "name": "二线",
                 "count": 1
             },
             {
-                "name": "代码复杂度",
+                "name": "二进制",
                 "count": 1
             },
             {
-                "name": "代码质量",
+                "name": "依赖分析",
                 "count": 1
             },
             {
-                "name": "校招",
+                "name": "函数",
                 "count": 1
             },
             {
-                "name": "模块化",
+                "name": "前端工具",
                 "count": 1
             },
             {
-                "name": "测试覆盖率",
+                "name": "前端思考",
                 "count": 1
             },
             {
-                "name": "生日快乐",
+                "name": "前端构建工具",
                 "count": 1
             },
             {
-                "name": "计划",
+                "name": "反射机制",
                 "count": 1
             },
             {
-                "name": "设计模式",
+                "name": "变量",
                 "count": 1
             },
             {
-                "name": "语义化",
+                "name": "多进程",
                 "count": 1
             },
             {
-                "name": "键盘",
+                "name": "常量",
                 "count": 1
             },
             {
-                "name": "高级工程师",
+                "name": "并发",
+                "count": 1
+            },
+            {
+                "name": "指针",
+                "count": 1
+            },
+            {
+                "name": "推荐系统",
+                "count": 1
+            },
+            {
+                "name": "数组",
+                "count": 1
+            },
+            {
+                "name": "样式",
+                "count": 1
+            },
+            {
+                "name": "模板引擎",
+                "count": 1
+            },
+            {
+                "name": "泛型",
+                "count": 1
+            },
+            {
+                "name": "消费主义",
+                "count": 1
+            },
+            {
+                "name": "深度学习",
+                "count": 1
+            },
+            {
+                "name": "版本管理",
+                "count": 1
+            },
+            {
+                "name": "状态管理",
+                "count": 1
+            },
+            {
+                "name": "理性消费",
+                "count": 1
+            },
+            {
+                "name": "生活",
+                "count": 1
+            },
+            {
+                "name": "神经网络",
+                "count": 1
+            },
+            {
+                "name": "类型系统",
+                "count": 1
+            },
+            {
+                "name": "组件",
+                "count": 1
+            },
+            {
+                "name": "结构体",
+                "count": 1
+            },
+            {
+                "name": "置业",
+                "count": 1
+            },
+            {
+                "name": "自动化测试",
+                "count": 1
+            },
+            {
+                "name": "虚拟 DOM",
+                "count": 1
+            },
+            {
+                "name": "虚拟DOM",
+                "count": 1
+            },
+            {
+                "name": "读后感",
+                "count": 1
+            },
+            {
+                "name": "负载均衡",
+                "count": 1
+            },
+            {
+                "name": "错误处理",
+                "count": 1
+            },
+            {
+                "name": "长沙",
+                "count": 1
+            },
+            {
+                "name": "随便写写",
                 "count": 1
             }
         ]

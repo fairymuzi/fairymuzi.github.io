@@ -1,204 +1,320 @@
 import projectConfig from '/pagic.config.js';
 export default {
     config: { "root": "/", ...projectConfig, branch: 'main' },
-    'pagePath': "tags/React/",
+    'pagePath': "tags/react/",
     'layoutPath': "archives/_layout.tsx",
-    'outputPath': "tags/React/index.html",
+    'outputPath': "tags/react/index.html",
     'head': null,
     'script': React.createElement(React.Fragment, null,
         React.createElement("script", { src: "https://cdn.pagic.org/react@16.13.1/umd/react.production.min.js" }),
         React.createElement("script", { src: "https://cdn.pagic.org/react-dom@16.13.1/umd/react-dom.production.min.js" }),
         React.createElement("script", { src: "/index.js", type: "module" })),
-    'title': "React",
+    'title': "react",
     'content': null,
     'blog': {
         "isPost": false,
         "posts": [
             {
-                "pagePath": "posts/developing_react_components.md",
-                "title": "React 组件开发",
-                "link": "posts/developing_react_components.html",
-                "date": "2015-06-26T00:00:00.000Z",
+                "pagePath": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.md",
+                "title": "【翻译】基于虚拟DOM库(Snabbdom)的迷你React",
+                "link": "posts/2019/【翻译】基于虚拟DOM库(Snabbdom)的迷你React.html",
+                "date": "2019/05/01",
                 "updated": null,
-                "author": "muzi",
+                "author": "shenfq",
                 "contributors": [
-                    "muzi"
+                    "Shenfq"
                 ],
                 "categories": [
-                    "编程世界"
+                    "前端"
                 ],
                 "tags": [
-                    "React",
-                    "JavaScript",
-                    "分享"
+                    "前端框架",
+                    "react",
+                    "virtual dom",
+                    "虚拟 DOM",
+                    "Snabbdom",
+                    "翻译"
                 ],
-                "excerpt": "受 StuQ 的邀请，去录制了一期节目，羞涩ing~ React 组件开发 from Xcat Liu"
+                "excerpt": "React 是 JavaScript 社区的新成员，尽管 JSX （在 JavaScript 中使用 HTML 语法）存在一定的争议，但是对于虚拟 DOM 人们有不一样的看法。 对于不熟悉的人来说，虚拟 DOM 可以描述为某个时刻真实DOM的简单表示。其思想是：每次...",
+                "cover": "https://file.shenfq.com/FvyObN9fMncD7cMXJYfZOFQJFQ--.png"
             },
             {
-                "pagePath": "posts/thinking_in_react.md",
-                "title": "Thinking in React",
-                "link": "posts/thinking_in_react.html",
-                "date": "2014-12-04T00:00:00.000Z",
+                "pagePath": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.md",
+                "title": "【翻译】在 React Hooks 中如何请求数据？",
+                "link": "posts/2019/【翻译】在 React Hooks 中如何请求数据？.html",
+                "date": "2019/03/25",
                 "updated": null,
-                "author": "muzi",
+                "author": "shenfq",
                 "contributors": [
-                    "muzi"
+                    "Shenfq"
                 ],
                 "categories": [
-                    "编程世界"
+                    "前端"
                 ],
                 "tags": [
-                    "React",
-                    "分享"
+                    "前端框架",
+                    "react",
+                    "fetch",
+                    "react hooks",
+                    "翻译"
                 ],
-                "excerpt": "Thinking in React from Xcat Liu"
+                "excerpt": "通过这个教程，我想告诉你在 React 中如何使用 state 和 effect 这两种 hooks 去请求数据。我们将使用总所周知的 Hacker News API 来获取一些热门文章。你将定义属于你自己的数据请求的 Hooks ，并且可以在你所有的应用中复用，...",
+                "cover": "https://file.shenfq.com/Fp4SkemaUMnmloPIN3eWDZ9o6qZd.png"
             }
         ],
         "categories": [
             {
-                "name": "编程世界",
-                "count": 47
+                "name": "前端",
+                "count": 23
             },
             {
-                "name": "多彩生活",
+                "name": "Go",
+                "count": 8
+            },
+            {
+                "name": "Node.js",
+                "count": 8
+            },
+            {
+                "name": "前端工程",
                 "count": 7
             },
             {
-                "name": "编程世界2",
-                "count": 1
-            }
-        ],
-        "tags": [
-            {
-                "name": "JavaScript",
-                "count": 16
-            },
-            {
-                "name": "总结思考",
-                "count": 9
-            },
-            {
-                "name": "分享",
+                "name": "模块化",
                 "count": 6
             },
             {
-                "name": "Mobi.css",
+                "name": "年终总结",
                 "count": 4
             },
             {
-                "name": "CSS",
+                "name": "机器学习",
                 "count": 3
             },
             {
-                "name": "Grunt",
+                "name": "随便写写",
                 "count": 3
             },
             {
-                "name": "Hexo",
-                "count": 3
-            },
-            {
-                "name": "Markdown",
-                "count": 3
-            },
-            {
-                "name": "Fetch",
+                "name": "微信小程序",
                 "count": 2
-            },
-            {
-                "name": "GitHub",
-                "count": 2
-            },
-            {
-                "name": "mazimd",
-                "count": 2
-            },
-            {
-                "name": "React",
-                "count": 2
-            },
-            {
-                "name": "React Native",
-                "count": 2
-            },
-            {
-                "name": "TypeScript",
-                "count": 2
-            },
-            {
-                "name": "V2HOT",
-                "count": 2
-            },
-            {
-                "name": "Windows",
-                "count": 2
-            },
-            {
-                "name": "微软",
-                "count": 2
-            },
-            {
-                "name": "测试",
-                "count": 2
-            },
-            {
-                "name": "翻译",
-                "count": 2
-            },
-            {
-                "name": "Android",
-                "count": 1
-            },
-            {
-                "name": "Array",
-                "count": 1
-            },
-            {
-                "name": "AST",
-                "count": 1
-            },
-            {
-                "name": "Bootstrap",
-                "count": 1
-            },
-            {
-                "name": "Canvas",
-                "count": 1
-            },
-            {
-                "name": "Debug",
-                "count": 1
-            },
-            {
-                "name": "ESLint",
-                "count": 1
-            },
-            {
-                "name": "Flico",
-                "count": 1
-            },
-            {
-                "name": "GeoJSON",
-                "count": 1
             },
             {
                 "name": "Git",
                 "count": 1
             },
             {
-                "name": "Git Hooks",
+                "name": "Promise",
                 "count": 1
             },
             {
-                "name": "Google Analytics",
+                "name": "VSCode",
                 "count": 1
             },
             {
-                "name": "Hybrid App",
+                "name": "其他",
                 "count": 1
             },
             {
-                "name": "Hyper-V",
+                "name": "读后感",
+                "count": 1
+            }
+        ],
+        "tags": [
+            {
+                "name": "前端",
+                "count": 24
+            },
+            {
+                "name": "前端框架",
+                "count": 11
+            },
+            {
+                "name": "前端工程化",
+                "count": 10
+            },
+            {
+                "name": "模块化",
+                "count": 9
+            },
+            {
+                "name": "Go",
+                "count": 8
+            },
+            {
+                "name": "JavaScript",
+                "count": 8
+            },
+            {
+                "name": "Node",
+                "count": 7
+            },
+            {
+                "name": "Vue.js",
+                "count": 7
+            },
+            {
+                "name": "工作",
+                "count": 7
+            },
+            {
+                "name": "总结",
+                "count": 6
+            },
+            {
+                "name": "感悟",
+                "count": 6
+            },
+            {
+                "name": "React",
+                "count": 5
+            },
+            {
+                "name": "翻译",
+                "count": 5
+            },
+            {
+                "name": "机器学习",
+                "count": 3
+            },
+            {
+                "name": "组件化",
+                "count": 3
+            },
+            {
+                "name": "CommonJS",
+                "count": 2
+            },
+            {
+                "name": "Components",
+                "count": 2
+            },
+            {
+                "name": "es6",
+                "count": 2
+            },
+            {
+                "name": "ESLint",
+                "count": 2
+            },
+            {
+                "name": "Koa",
+                "count": 2
+            },
+            {
+                "name": "Promise",
+                "count": 2
+            },
+            {
+                "name": "react",
+                "count": 2
+            },
+            {
+                "name": "router",
+                "count": 2
+            },
+            {
+                "name": "Web Components",
+                "count": 2
+            },
+            {
+                "name": "webpack",
+                "count": 2
+            },
+            {
+                "name": "代码格式化",
+                "count": 2
+            },
+            {
+                "name": "前端模块化",
+                "count": 2
+            },
+            {
+                "name": "小程序",
+                "count": 2
+            },
+            {
+                "name": "工程化",
+                "count": 2
+            },
+            {
+                "name": "微信小程序",
+                "count": 2
+            },
+            {
+                "name": "性能",
+                "count": 2
+            },
+            {
+                "name": "数学",
+                "count": 2
+            },
+            {
+                "name": "模板",
+                "count": 2
+            },
+            {
+                "name": "算法",
+                "count": 2
+            },
+            {
+                "name": "编译",
+                "count": 2
+            },
+            {
+                "name": "路由",
+                "count": 2
+            },
+            {
+                "name": "AMD",
+                "count": 1
+            },
+            {
+                "name": "async/await",
+                "count": 1
+            },
+            {
+                "name": "babel",
+                "count": 1
+            },
+            {
+                "name": "Buffer",
+                "count": 1
+            },
+            {
+                "name": "cluster",
+                "count": 1
+            },
+            {
+                "name": "CMD",
+                "count": 1
+            },
+            {
+                "name": "CSS",
+                "count": 1
+            },
+            {
+                "name": "ES Module",
+                "count": 1
+            },
+            {
+                "name": "fastify",
+                "count": 1
+            },
+            {
+                "name": "fetch",
+                "count": 1
+            },
+            {
+                "name": "Generator",
+                "count": 1
+            },
+            {
+                "name": "git",
+                "count": 1
+            },
+            {
+                "name": "gulp",
                 "count": 1
             },
             {
@@ -206,7 +322,19 @@ export default {
                 "count": 1
             },
             {
-                "name": "Linux",
+                "name": "js基础",
+                "count": 1
+            },
+            {
+                "name": "linux",
+                "count": 1
+            },
+            {
+                "name": "MobX",
+                "count": 1
+            },
+            {
+                "name": "node",
                 "count": 1
             },
             {
@@ -214,95 +342,195 @@ export default {
                 "count": 1
             },
             {
-                "name": "On call",
+                "name": "offer",
                 "count": 1
             },
             {
-                "name": "Pagic",
+                "name": "react hooks",
                 "count": 1
             },
             {
-                "name": "Puppeteer",
+                "name": "Snabbdom",
                 "count": 1
             },
             {
-                "name": "README",
+                "name": "Stream",
                 "count": 1
             },
             {
-                "name": "Samba",
+                "name": "this",
                 "count": 1
             },
             {
-                "name": "TopoJSON",
+                "name": "TypeScript",
                 "count": 1
             },
             {
-                "name": "Tutorial",
+                "name": "USB",
                 "count": 1
             },
             {
-                "name": "UglifyJS",
+                "name": "virtual dom",
                 "count": 1
             },
             {
-                "name": "VituralBox",
+                "name": "VSCode",
                 "count": 1
             },
             {
-                "name": "WebViewJavascriptBridge",
+                "name": "Webpack",
                 "count": 1
             },
             {
-                "name": "Wiki",
+                "name": "中间件",
                 "count": 1
             },
             {
-                "name": "YUI",
+                "name": "二线",
                 "count": 1
             },
             {
-                "name": "代码复杂度",
+                "name": "二进制",
                 "count": 1
             },
             {
-                "name": "代码质量",
+                "name": "依赖分析",
                 "count": 1
             },
             {
-                "name": "校招",
+                "name": "函数",
                 "count": 1
             },
             {
-                "name": "模块化",
+                "name": "前端工具",
                 "count": 1
             },
             {
-                "name": "测试覆盖率",
+                "name": "前端思考",
                 "count": 1
             },
             {
-                "name": "生日快乐",
+                "name": "前端构建工具",
                 "count": 1
             },
             {
-                "name": "计划",
+                "name": "反射机制",
                 "count": 1
             },
             {
-                "name": "设计模式",
+                "name": "变量",
                 "count": 1
             },
             {
-                "name": "语义化",
+                "name": "多进程",
                 "count": 1
             },
             {
-                "name": "键盘",
+                "name": "常量",
                 "count": 1
             },
             {
-                "name": "高级工程师",
+                "name": "并发",
+                "count": 1
+            },
+            {
+                "name": "指针",
+                "count": 1
+            },
+            {
+                "name": "推荐系统",
+                "count": 1
+            },
+            {
+                "name": "数组",
+                "count": 1
+            },
+            {
+                "name": "样式",
+                "count": 1
+            },
+            {
+                "name": "模板引擎",
+                "count": 1
+            },
+            {
+                "name": "泛型",
+                "count": 1
+            },
+            {
+                "name": "消费主义",
+                "count": 1
+            },
+            {
+                "name": "深度学习",
+                "count": 1
+            },
+            {
+                "name": "版本管理",
+                "count": 1
+            },
+            {
+                "name": "状态管理",
+                "count": 1
+            },
+            {
+                "name": "理性消费",
+                "count": 1
+            },
+            {
+                "name": "生活",
+                "count": 1
+            },
+            {
+                "name": "神经网络",
+                "count": 1
+            },
+            {
+                "name": "类型系统",
+                "count": 1
+            },
+            {
+                "name": "组件",
+                "count": 1
+            },
+            {
+                "name": "结构体",
+                "count": 1
+            },
+            {
+                "name": "置业",
+                "count": 1
+            },
+            {
+                "name": "自动化测试",
+                "count": 1
+            },
+            {
+                "name": "虚拟 DOM",
+                "count": 1
+            },
+            {
+                "name": "虚拟DOM",
+                "count": 1
+            },
+            {
+                "name": "读后感",
+                "count": 1
+            },
+            {
+                "name": "负载均衡",
+                "count": 1
+            },
+            {
+                "name": "错误处理",
+                "count": 1
+            },
+            {
+                "name": "长沙",
+                "count": 1
+            },
+            {
+                "name": "随便写写",
                 "count": 1
             }
         ]

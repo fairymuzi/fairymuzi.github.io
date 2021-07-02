@@ -15,171 +15,281 @@ export default {
         "isPost": false,
         "posts": [
             {
-                "pagePath": "posts/geojson_and_topojson.md",
-                "title": "GeoJSON 和 TopoJSON",
-                "link": "posts/geojson_and_topojson.html",
-                "date": "2015-04-24T00:00:00.000Z",
+                "pagePath": "posts/2020/Node.js 服务性能翻倍的秘密（一）.md",
+                "title": "Node.js 服务性能翻倍的秘密（一）",
+                "link": "posts/2020/Node.js 服务性能翻倍的秘密（一）.html",
+                "date": "2020/12/13",
                 "updated": null,
-                "author": "muzi",
+                "author": "shenfq",
                 "contributors": [
-                    "muzi"
+                    "Shenfq"
                 ],
                 "categories": [
-                    "编程世界"
+                    "Node.js"
                 ],
                 "tags": [
-                    "GeoJSON",
-                    "TopoJSON",
-                    "JSON"
+                    "性能",
+                    "Node",
+                    "JSON",
+                    "fastify"
                 ],
-                "excerpt": "GeoJSON GeoJSON 使用 type 表示数据的类型。 当 type 取值 Point、LineString、Polygon、MultiPoint、MultiLineString、MultiPolygon 或 GeometryCollection 时，用来表示几何图。 当 type 取值 Feature 时，除了几何图外，还..."
+                "excerpt": "前言 用过 Node.js 开发过的同学肯定都上手过 koa，因为他简单优雅的写法，再加上丰富的社区生态，而且现存的许多 Node.js 框架都是基于 koa 进行二次封装的。但是说到性能，就不得不提到一个知名框架： fastify ，听名字就知道...",
+                "cover": "https://file.shenfq.com/pic/20201213162826.png"
             }
         ],
         "categories": [
             {
-                "name": "编程世界",
-                "count": 47
+                "name": "前端",
+                "count": 23
             },
             {
-                "name": "多彩生活",
+                "name": "Go",
+                "count": 8
+            },
+            {
+                "name": "Node.js",
+                "count": 8
+            },
+            {
+                "name": "前端工程",
                 "count": 7
             },
             {
-                "name": "编程世界2",
-                "count": 1
-            }
-        ],
-        "tags": [
-            {
-                "name": "JavaScript",
-                "count": 16
-            },
-            {
-                "name": "总结思考",
-                "count": 9
-            },
-            {
-                "name": "分享",
+                "name": "模块化",
                 "count": 6
             },
             {
-                "name": "Mobi.css",
+                "name": "年终总结",
                 "count": 4
             },
             {
-                "name": "CSS",
+                "name": "机器学习",
                 "count": 3
             },
             {
-                "name": "Grunt",
+                "name": "随便写写",
                 "count": 3
             },
             {
-                "name": "Hexo",
-                "count": 3
-            },
-            {
-                "name": "Markdown",
-                "count": 3
-            },
-            {
-                "name": "Fetch",
+                "name": "微信小程序",
                 "count": 2
-            },
-            {
-                "name": "GitHub",
-                "count": 2
-            },
-            {
-                "name": "mazimd",
-                "count": 2
-            },
-            {
-                "name": "React",
-                "count": 2
-            },
-            {
-                "name": "React Native",
-                "count": 2
-            },
-            {
-                "name": "TypeScript",
-                "count": 2
-            },
-            {
-                "name": "V2HOT",
-                "count": 2
-            },
-            {
-                "name": "Windows",
-                "count": 2
-            },
-            {
-                "name": "微软",
-                "count": 2
-            },
-            {
-                "name": "测试",
-                "count": 2
-            },
-            {
-                "name": "翻译",
-                "count": 2
-            },
-            {
-                "name": "Android",
-                "count": 1
-            },
-            {
-                "name": "Array",
-                "count": 1
-            },
-            {
-                "name": "AST",
-                "count": 1
-            },
-            {
-                "name": "Bootstrap",
-                "count": 1
-            },
-            {
-                "name": "Canvas",
-                "count": 1
-            },
-            {
-                "name": "Debug",
-                "count": 1
-            },
-            {
-                "name": "ESLint",
-                "count": 1
-            },
-            {
-                "name": "Flico",
-                "count": 1
-            },
-            {
-                "name": "GeoJSON",
-                "count": 1
             },
             {
                 "name": "Git",
                 "count": 1
             },
             {
-                "name": "Git Hooks",
+                "name": "Promise",
                 "count": 1
             },
             {
-                "name": "Google Analytics",
+                "name": "VSCode",
                 "count": 1
             },
             {
-                "name": "Hybrid App",
+                "name": "其他",
                 "count": 1
             },
             {
-                "name": "Hyper-V",
+                "name": "读后感",
+                "count": 1
+            }
+        ],
+        "tags": [
+            {
+                "name": "前端",
+                "count": 24
+            },
+            {
+                "name": "前端框架",
+                "count": 11
+            },
+            {
+                "name": "前端工程化",
+                "count": 10
+            },
+            {
+                "name": "模块化",
+                "count": 9
+            },
+            {
+                "name": "Go",
+                "count": 8
+            },
+            {
+                "name": "JavaScript",
+                "count": 8
+            },
+            {
+                "name": "Node",
+                "count": 7
+            },
+            {
+                "name": "Vue.js",
+                "count": 7
+            },
+            {
+                "name": "工作",
+                "count": 7
+            },
+            {
+                "name": "总结",
+                "count": 6
+            },
+            {
+                "name": "感悟",
+                "count": 6
+            },
+            {
+                "name": "React",
+                "count": 5
+            },
+            {
+                "name": "翻译",
+                "count": 5
+            },
+            {
+                "name": "机器学习",
+                "count": 3
+            },
+            {
+                "name": "组件化",
+                "count": 3
+            },
+            {
+                "name": "CommonJS",
+                "count": 2
+            },
+            {
+                "name": "Components",
+                "count": 2
+            },
+            {
+                "name": "es6",
+                "count": 2
+            },
+            {
+                "name": "ESLint",
+                "count": 2
+            },
+            {
+                "name": "Koa",
+                "count": 2
+            },
+            {
+                "name": "Promise",
+                "count": 2
+            },
+            {
+                "name": "react",
+                "count": 2
+            },
+            {
+                "name": "router",
+                "count": 2
+            },
+            {
+                "name": "Web Components",
+                "count": 2
+            },
+            {
+                "name": "webpack",
+                "count": 2
+            },
+            {
+                "name": "代码格式化",
+                "count": 2
+            },
+            {
+                "name": "前端模块化",
+                "count": 2
+            },
+            {
+                "name": "小程序",
+                "count": 2
+            },
+            {
+                "name": "工程化",
+                "count": 2
+            },
+            {
+                "name": "微信小程序",
+                "count": 2
+            },
+            {
+                "name": "性能",
+                "count": 2
+            },
+            {
+                "name": "数学",
+                "count": 2
+            },
+            {
+                "name": "模板",
+                "count": 2
+            },
+            {
+                "name": "算法",
+                "count": 2
+            },
+            {
+                "name": "编译",
+                "count": 2
+            },
+            {
+                "name": "路由",
+                "count": 2
+            },
+            {
+                "name": "AMD",
+                "count": 1
+            },
+            {
+                "name": "async/await",
+                "count": 1
+            },
+            {
+                "name": "babel",
+                "count": 1
+            },
+            {
+                "name": "Buffer",
+                "count": 1
+            },
+            {
+                "name": "cluster",
+                "count": 1
+            },
+            {
+                "name": "CMD",
+                "count": 1
+            },
+            {
+                "name": "CSS",
+                "count": 1
+            },
+            {
+                "name": "ES Module",
+                "count": 1
+            },
+            {
+                "name": "fastify",
+                "count": 1
+            },
+            {
+                "name": "fetch",
+                "count": 1
+            },
+            {
+                "name": "Generator",
+                "count": 1
+            },
+            {
+                "name": "git",
+                "count": 1
+            },
+            {
+                "name": "gulp",
                 "count": 1
             },
             {
@@ -187,7 +297,19 @@ export default {
                 "count": 1
             },
             {
-                "name": "Linux",
+                "name": "js基础",
+                "count": 1
+            },
+            {
+                "name": "linux",
+                "count": 1
+            },
+            {
+                "name": "MobX",
+                "count": 1
+            },
+            {
+                "name": "node",
                 "count": 1
             },
             {
@@ -195,95 +317,195 @@ export default {
                 "count": 1
             },
             {
-                "name": "On call",
+                "name": "offer",
                 "count": 1
             },
             {
-                "name": "Pagic",
+                "name": "react hooks",
                 "count": 1
             },
             {
-                "name": "Puppeteer",
+                "name": "Snabbdom",
                 "count": 1
             },
             {
-                "name": "README",
+                "name": "Stream",
                 "count": 1
             },
             {
-                "name": "Samba",
+                "name": "this",
                 "count": 1
             },
             {
-                "name": "TopoJSON",
+                "name": "TypeScript",
                 "count": 1
             },
             {
-                "name": "Tutorial",
+                "name": "USB",
                 "count": 1
             },
             {
-                "name": "UglifyJS",
+                "name": "virtual dom",
                 "count": 1
             },
             {
-                "name": "VituralBox",
+                "name": "VSCode",
                 "count": 1
             },
             {
-                "name": "WebViewJavascriptBridge",
+                "name": "Webpack",
                 "count": 1
             },
             {
-                "name": "Wiki",
+                "name": "中间件",
                 "count": 1
             },
             {
-                "name": "YUI",
+                "name": "二线",
                 "count": 1
             },
             {
-                "name": "代码复杂度",
+                "name": "二进制",
                 "count": 1
             },
             {
-                "name": "代码质量",
+                "name": "依赖分析",
                 "count": 1
             },
             {
-                "name": "校招",
+                "name": "函数",
                 "count": 1
             },
             {
-                "name": "模块化",
+                "name": "前端工具",
                 "count": 1
             },
             {
-                "name": "测试覆盖率",
+                "name": "前端思考",
                 "count": 1
             },
             {
-                "name": "生日快乐",
+                "name": "前端构建工具",
                 "count": 1
             },
             {
-                "name": "计划",
+                "name": "反射机制",
                 "count": 1
             },
             {
-                "name": "设计模式",
+                "name": "变量",
                 "count": 1
             },
             {
-                "name": "语义化",
+                "name": "多进程",
                 "count": 1
             },
             {
-                "name": "键盘",
+                "name": "常量",
                 "count": 1
             },
             {
-                "name": "高级工程师",
+                "name": "并发",
+                "count": 1
+            },
+            {
+                "name": "指针",
+                "count": 1
+            },
+            {
+                "name": "推荐系统",
+                "count": 1
+            },
+            {
+                "name": "数组",
+                "count": 1
+            },
+            {
+                "name": "样式",
+                "count": 1
+            },
+            {
+                "name": "模板引擎",
+                "count": 1
+            },
+            {
+                "name": "泛型",
+                "count": 1
+            },
+            {
+                "name": "消费主义",
+                "count": 1
+            },
+            {
+                "name": "深度学习",
+                "count": 1
+            },
+            {
+                "name": "版本管理",
+                "count": 1
+            },
+            {
+                "name": "状态管理",
+                "count": 1
+            },
+            {
+                "name": "理性消费",
+                "count": 1
+            },
+            {
+                "name": "生活",
+                "count": 1
+            },
+            {
+                "name": "神经网络",
+                "count": 1
+            },
+            {
+                "name": "类型系统",
+                "count": 1
+            },
+            {
+                "name": "组件",
+                "count": 1
+            },
+            {
+                "name": "结构体",
+                "count": 1
+            },
+            {
+                "name": "置业",
+                "count": 1
+            },
+            {
+                "name": "自动化测试",
+                "count": 1
+            },
+            {
+                "name": "虚拟 DOM",
+                "count": 1
+            },
+            {
+                "name": "虚拟DOM",
+                "count": 1
+            },
+            {
+                "name": "读后感",
+                "count": 1
+            },
+            {
+                "name": "负载均衡",
+                "count": 1
+            },
+            {
+                "name": "错误处理",
+                "count": 1
+            },
+            {
+                "name": "长沙",
+                "count": 1
+            },
+            {
+                "name": "随便写写",
                 "count": 1
             }
         ]

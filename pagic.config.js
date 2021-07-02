@@ -1,47 +1,48 @@
 export default {
-    srcDir: 'src',
     theme: 'blog',
+    title: '自然醒的博客',
+    description: '前端工程师，爱折腾，擅长 JavaScript，欢迎关注我的公众号「自然醒的笔记本」',
+    srcDir: 'blog',
     plugins: ['blog'],
-    title: '艾诺迪亚文档',
-    description: '本文档由艾诺迪亚新手交流群成员提供与整理',
-    github: 'https://github.com/fairymuzi/doc_inotia',
+    head: React.createElement("script", { src: "/assets/hm.js" }),
+    blog: {
+        root: '/posts/',
+        author: 'shenfq',
+        social: {
+            github: 'Shenfq',
+            email: 'shenfq95@foxmail.com',
+        },
+    },
     nav: [
         {
             text: '首页',
             link: '/',
-            icon: 'czs-home-l'
+            icon: 'czs-home-l',
         },
         {
             text: '分类',
             link: '/categories/',
-            icon: 'czs-category-l'
+            icon: 'czs-category-l',
         },
         {
             text: '标签',
             link: '/tags/',
-            icon: 'czs-tag-l'
+            icon: 'czs-tag-l',
         },
         {
             text: '关于',
             link: '/about/',
-            icon: 'czs-about-l'
+            icon: 'czs-about-l',
         },
         {
             text: '归档',
             link: '/archives/',
-            icon: 'czs-box-l'
+            icon: 'czs-box-l',
         },
         {
             text: '友情链接',
-            link: '/links/',
-            icon: 'czs-link-l'
-        }
+            link: '/links/index.html',
+            icon: 'czs-link-l',
+        },
     ],
-    blog: {
-        root: '/posts/',
-        social: {
-            github: 'fairymuzi/doc_inotia',
-            email: '2249868082@qq.com',
-        }
-    }
 };
